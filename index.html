@@ -33,8 +33,8 @@ body{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
   overscroll-behavior-y:none;
-  padding-bottom:calc(72px + env(safe-area-inset-bottom));
-  padding-top:env(safe-area-inset-top);
+  padding-bottom:calc(90px + env(safe-area-inset-bottom));
+  padding-top:160px; /* fallback, JS sets exact value on load */
 }
 .stencil{
   font-family:"Arial Narrow","Helvetica Neue",Arial,sans-serif;
@@ -49,12 +49,14 @@ body{
   font-weight:700;
   color:var(--ink-faint);
 }
-header.top{
-  padding:18px 18px 14px;
+.topbar{
+  position:fixed; top:0; left:0; right:0; z-index:10;
+  background:var(--bg);
   border-bottom:1px solid var(--line);
-  position:sticky; top:0; z-index:10;
-  background:rgba(20,23,26,0.92);
-  backdrop-filter:blur(10px);
+  padding-top:env(safe-area-inset-top);
+}
+header.top{
+  padding:16px 18px 12px;
 }
 header.top .brand{
   display:flex; align-items:baseline; justify-content:space-between;
@@ -74,6 +76,14 @@ header.top .brand .plate::after{
   background:var(--bg); border:2px solid var(--line);
 }
 header.top .sub{margin-top:4px;}
+
+.session-badge{
+  display:flex; justify-content:space-between; align-items:center;
+  background:var(--amber); color:#1a1500; font-weight:800; font-size:12.5px;
+  padding:8px 18px; letter-spacing:0.01em;
+}
+.session-badge.hidden{display:none;}
+.session-badge span.elapsed{font-family:"Arial Narrow",sans-serif; font-stretch:condensed;}
 
 main{padding:16px; max-width:520px; margin:0 auto;}
 
@@ -158,25 +168,22 @@ main{padding:16px; max-width:520px; margin:0 auto;}
 
 /* ---- Nav ---- */
 nav.tabs{
-  position:fixed; bottom:0; left:0; right:0;
-  display:flex; background:rgba(20,23,26,0.95); backdrop-filter:blur(10px);
+  display:flex; background:var(--surface);
   border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom);
-  z-index:10;
 }
 nav.tabs button{
   flex:1; background:none; border:none; color:var(--ink-faint);
-  padding:10px 2px 8px; font-size:9.5px; font-weight:700; letter-spacing:0.02em;
+  padding:9px 2px 9px; font-size:9.5px; font-weight:700; letter-spacing:0.02em;
   line-height:1.2;
 }
-nav.tabs button .ic{display:block; font-size:19px; margin-bottom:2px;}
+nav.tabs button .ic{display:block; font-size:18px; margin-bottom:2px;}
 nav.tabs button.active{color:var(--amber);}
 
 /* ---- Rest timer ---- */
 .timer-bar{
-  position:fixed; left:0; right:0; bottom:calc(56px + env(safe-area-inset-bottom));
+  position:fixed; left:0; right:0; bottom:0;
   background:var(--surface); border-top:1px solid var(--line);
-  padding:10px 16px calc(10px + env(safe-area-inset-bottom) * 0);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
   display:flex; align-items:center; gap:12px; z-index:20;
   transform:translateY(0); transition:transform 0.2s ease;
 }
@@ -289,22 +296,29 @@ textarea.export{
 </head>
 <body>
 
-<header class="top">
-  <div class="brand">
-    <h1><span class="plate" style="display:inline-block;vertical-align:middle;margin-right:8px;"></span>IRON BLOCK</h1>
+<div class="topbar" id="topbar">
+  <header class="top">
+    <div class="brand">
+      <h1><span class="plate" style="display:inline-block;vertical-align:middle;margin-right:8px;"></span>IRON BLOCK</h1>
+    </div>
+    <div class="label sub">FUNCTIONAL STRENGTH · JAMIE</div>
+  </header>
+
+  <div class="session-badge hidden" id="sessionBadge">
+    <span id="sessionBadgeLabel">Session</span>
+    <span class="elapsed" id="sessionBadgeTime">0:00</span>
   </div>
-  <div class="label sub">FUNCTIONAL STRENGTH · JAMIE</div>
-</header>
+
+  <nav class="tabs">
+    <button data-tab="today"><span class="ic">▶</span>START WORKOUT</button>
+    <button data-tab="history"><span class="ic">≡</span>HISTORY</button>
+    <button data-tab="exercises"><span class="ic">i</span>EXERCISES</button>
+    <button data-tab="progress"><span class="ic">▲</span>PROGRESS</button>
+    <button data-tab="settings"><span class="ic">⚙</span>SETTINGS</button>
+  </nav>
+</div>
 
 <main id="app"></main>
-
-<nav class="tabs">
-  <button data-tab="today"><span class="ic">▶</span>START WORKOUT</button>
-  <button data-tab="history"><span class="ic">≡</span>HISTORY</button>
-  <button data-tab="exercises"><span class="ic">i</span>EXERCISES</button>
-  <button data-tab="progress"><span class="ic">▲</span>PROGRESS</button>
-  <button data-tab="settings"><span class="ic">⚙</span>SETTINGS</button>
-</nav>
 
 <div class="timer-bar hidden" id="timerBar">
   <button id="tbMinus">−15</button>
@@ -316,6 +330,7 @@ textarea.export{
   <button id="tbPlus">+15</button>
   <button class="tb-skip" id="tbSkip">SKIP</button>
 </div>
+
 
 <div class="modal-backdrop hidden" id="formModalBackdrop">
   <div class="modal-sheet" id="formModalSheet"></div>
@@ -762,13 +777,16 @@ document.getElementById('tbPlus').onclick = ()=>adjustTimer(15);
 document.getElementById('tbSkip').onclick = skipTimer;
 
 /* ============ DRAFT SESSION ============ */
-function startDraft(dayNum){
+function startDraft(dayNum, opts){
+  opts = opts || {};
   const p = PROGRAM[dayNum];
   const dayExercises = getDayExercises(dayNum);
   const deload = isDeloadWeek();
-  const preserveStart = (draft && draft.dayNum===dayNum && draft.date===todayStr()) ? draft.startTime : Date.now();
+  const sameSession = draft && draft.dayNum===dayNum && draft.date===todayStr();
+  const preserveStart = sameSession ? draft.startTime : Date.now();
+  const started = opts.start===true ? true : (sameSession ? !!draft.started : false);
   draft = {
-    dayNum, dayName: p.name, date: todayStr(), startTime: preserveStart,
+    dayNum, dayName: p.name, date: todayStr(), startTime: preserveStart, started,
     exercises: dayExercises.map(ex=>{
       const setCount = deload ? Math.max(2, Math.ceil(ex.sets*0.6)) : ex.sets;
       return {
@@ -777,17 +795,43 @@ function startDraft(dayNum){
       };
     })
   };
+  if(started) startSessionClock();
 }
-function ensureDraft(){
-  if(!draft || draft.date!==todayStr()){
-    const d = currentDayNumber();
-    if(d) startDraft(d);
-  }
+
+/* ============ SESSION CLOCK (persists across tabs) ============ */
+let sessionClockHandle = null;
+function startSessionClock(){
+  clearInterval(sessionClockHandle);
+  updateSessionBadge();
+  sessionClockHandle = setInterval(updateSessionBadge, 1000);
 }
+function stopSessionClock(){
+  clearInterval(sessionClockHandle);
+  const badge = document.getElementById('sessionBadge');
+  if(badge) badge.classList.add('hidden');
+  syncTopbarHeight();
+}
+function updateSessionBadge(){
+  const badge = document.getElementById('sessionBadge');
+  if(!draft || !draft.started){ badge.classList.add('hidden'); return; }
+  const wasHidden = badge.classList.contains('hidden');
+  badge.classList.remove('hidden');
+  document.getElementById('sessionBadgeLabel').textContent = `● ${draft.dayName.toUpperCase()} IN PROGRESS`;
+  const elapsedSec = Math.floor((Date.now()-draft.startTime)/1000);
+  document.getElementById('sessionBadgeTime').textContent = fmtMS(elapsedSec);
+  if(wasHidden) syncTopbarHeight();
+}
+function syncTopbarHeight(){
+  const tb = document.getElementById('topbar');
+  if(tb) document.body.style.paddingTop = tb.offsetHeight + 'px';
+}
+window.addEventListener('resize', syncTopbarHeight);
+document.getElementById('sessionBadge').onclick = ()=>{
+  activeTab = 'today'; selectedDay = draft ? draft.dayNum : selectedDay; render();
+};
 
 /* ============ RENDER: TODAY ============ */
 function renderToday(){
-  ensureDraft();
   const dayNum = selectedDay ?? currentDayNumber();
   let html = "";
 
@@ -813,9 +857,9 @@ function renderToday(){
     return;
   }
 
-  if(!draft || draft.dayNum!==dayNum) startDraft(dayNum);
   const p = PROGRAM[dayNum];
   const dayExercises = getDayExercises(dayNum);
+  const liveDraft = (draft && draft.dayNum===dayNum && draft.date===todayStr() && draft.started) ? draft : null;
 
   html += `<div style="display:flex;justify-content:space-between;align-items:baseline;">
     <div class="session-title">${p.name}</div>
@@ -834,7 +878,44 @@ function renderToday(){
 
   html += `<div class="warmup"><div class="label">WARM-UP</div><ul>${p.warmup.map(w=>`<li>${w}</li>`).join("")}</ul></div>`;
 
-  draft.exercises.forEach((ex,exi)=>{
+  if(!liveDraft){
+    // PREVIEW MODE — not started yet, or started earlier and this isn't the live day
+    dayExercises.forEach((ex)=>{
+      const best = bestForExercise(ex.name);
+      html += `<div class="exercise-card">
+        <div class="exercise-head">
+          <div>
+            <button class="name-btn" data-formname="${ex.name}"><span class="info-dot">i</span>${ex.name}</button>
+            <div class="target">Target ${ex.target}${best?` · best ${best.weight}×${best.reps}`:''}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px;">
+            ${ex.tempo!=='—'?`<div class="tempo-tag">${ex.tempo}</div>`:''}
+            ${ex.rest>0?`<div class="rest-chip" style="opacity:0.6;">⏱ ${fmtMS(restFor(ex))}</div>`:''}
+          </div>
+        </div>
+      </div>`;
+    });
+    const otherDaySessionActive = draft && draft.started && draft.date===todayStr() && draft.dayNum!==dayNum;
+    html += `<button class="finish-btn" id="startWorkoutBtn">▶ START WORKOUT</button>`;
+    if(otherDaySessionActive){
+      html += `<div style="text-align:center;color:var(--ink-faint);font-size:12px;margin-top:10px;">${draft.dayName} is still in progress — starting this will not affect it, switch back via the session badge above.</div>`;
+    }
+    document.getElementById("app").innerHTML = html;
+    attachDayPicker();
+    document.querySelectorAll('.name-btn').forEach(btn=>{
+      btn.onclick = ()=> openFormModal(btn.dataset.formname);
+    });
+    document.getElementById('startWorkoutBtn').onclick = ()=>{
+      startDraft(dayNum, {start:true});
+      renderToday();
+    };
+    const editBtn = document.getElementById('editDayBtn');
+    if(editBtn) editBtn.onclick = ()=>{ editingDay = editingDay===dayNum?null:dayNum; editingIndex=null; renderToday(); };
+    return;
+  }
+
+  // LIVE LOGGING MODE
+  liveDraft.exercises.forEach((ex,exi)=>{
     const best = bestForExercise(ex.name);
     const programEx = dayExercises[exi];
     html += `<div class="exercise-card">
@@ -859,7 +940,7 @@ function renderToday(){
     html += `</div>`;
   });
 
-  const anyDone = draft.exercises.some(ex=>ex.sets.some(s=>s.done));
+  const anyDone = liveDraft.exercises.some(ex=>ex.sets.some(s=>s.done));
   html += `<button class="finish-btn" id="finishBtn" ${anyDone?'':'disabled'}>FINISH SESSION</button>`;
 
   document.getElementById("app").innerHTML = html;
@@ -1040,6 +1121,7 @@ function finishSession(){
   });
 
   saveState();
+  stopSessionClock();
   draft = null; selectedDay = null;
   activeTab = "history";
   render();
@@ -1278,6 +1360,8 @@ document.querySelectorAll('nav.tabs button').forEach(b=>{
 });
 
 render();
+syncTopbarHeight();
+setTimeout(syncTopbarHeight, 100); // catch late font/layout shifts on first load
 </script>
 </body>
 </html>
