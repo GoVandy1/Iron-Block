@@ -133,27 +133,45 @@ main{padding:16px; max-width:520px; margin:0 auto;}
   padding:3px 8px; border-radius:8px; white-space:nowrap; flex-shrink:0; margin-left:8px;
 }
 .set-row{
-  display:grid; grid-template-columns:28px 1fr 1fr 34px; gap:8px; align-items:center;
-  padding:7px 0; border-top:1px solid var(--line);
+  display:grid; grid-template-columns:26px 58px 1fr 1fr 34px; gap:6px; align-items:center;
+  padding:7px 0; background:var(--surface); position:relative; z-index:1;
 }
-.set-row:first-of-type{border-top:none;}
-.set-dot{
-  width:20px;height:20px;border-radius:50%; border:2px solid var(--line);
-  background:var(--bg);
+.set-swipe{
+  position:relative; overflow:hidden; border-top:1px solid var(--line);
 }
-.set-dot.done{background:var(--green); border-color:var(--green);}
-.set-dot.pr{background:var(--red); border-color:var(--red);}
+.set-swipe:first-child{border-top:none;}
+.set-delete-action{
+  position:absolute; top:0; right:0; bottom:0; width:84px;
+  background:var(--red); color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; letter-spacing:0.05em; z-index:0;
+}
+.set-row-head{padding:8px 0 6px; border-top:none;}
+.set-num-h, .set-prev-h, .set-h, .set-check-h{
+  font-size:10px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.05em;
+  text-align:center;
+}
+.set-num{
+  width:26px; height:26px; border-radius:7px; background:var(--surface-2); color:var(--ink-dim);
+  display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
+}
+.set-prev{
+  font-size:11px; color:var(--ink-faint); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 .set-row input{
   width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--ink);
-  border-radius:8px; padding:8px 6px; font-size:15px; text-align:center;
+  border-radius:8px; padding:8px 4px; font-size:15px; text-align:center;
   font-family:"Arial Narrow",sans-serif; font-weight:700; font-stretch:condensed;
 }
 .set-row input::placeholder{color:var(--ink-faint); font-weight:400;}
 .set-check{
-  width:34px; height:34px; border-radius:8px; border:1px solid var(--line);
-  background:var(--surface-2); color:var(--ink-dim); font-size:16px;
+  width:32px; height:32px; border-radius:8px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--ink-dim); font-size:15px;
 }
 .set-check.on{background:var(--green); border-color:var(--green); color:#0d1a10;}
+.add-set-btn{
+  width:100%; margin-top:8px; padding:9px; border-radius:8px; border:1px dashed var(--line);
+  background:none; color:var(--ink-dim); font-size:12px; font-weight:700; letter-spacing:0.03em;
+}
 
 .finish-btn{
   width:100%; padding:15px; border:none; border-radius:var(--radius);
@@ -652,7 +670,8 @@ function resetDay(dayNum){
 function invalidateDraftIfNeeded(dayNum){
   if(draft && draft.dayNum===dayNum){
     const hasProgress = draft.exercises.some(ex=>ex.sets.some(s=>s.done));
-    if(!hasProgress || confirm("This will reset today's in-progress log for this day to match the edited exercise list. Continue?")){
+    if(!hasProgress || confirm("This will reset today's in-progress log for this day, including the elapsed timer. Continue?")){
+      stopSessionClock();
       startDraft(dayNum);
     }
   }
@@ -777,25 +796,44 @@ document.getElementById('tbPlus').onclick = ()=>adjustTimer(15);
 document.getElementById('tbSkip').onclick = skipTimer;
 
 /* ============ DRAFT SESSION ============ */
-function startDraft(dayNum, opts){
-  opts = opts || {};
+function getPreviousSetData(name){
+  for(const s of state.history){
+    const ex = s.exercises.find(e=>e.name===name);
+    if(ex) return ex.sets;
+  }
+  return null;
+}
+function startDraft(dayNum){
   const p = PROGRAM[dayNum];
   const dayExercises = getDayExercises(dayNum);
   const deload = isDeloadWeek();
-  const sameSession = draft && draft.dayNum===dayNum && draft.date===todayStr();
-  const preserveStart = sameSession ? draft.startTime : Date.now();
-  const started = opts.start===true ? true : (sameSession ? !!draft.started : false);
   draft = {
-    dayNum, dayName: p.name, date: todayStr(), startTime: preserveStart, started,
+    dayNum, dayName: p.name, date: todayStr(), startTime: null, started: false,
     exercises: dayExercises.map(ex=>{
       const setCount = deload ? Math.max(2, Math.ceil(ex.sets*0.6)) : ex.sets;
+      const prevSets = getPreviousSetData(ex.name);
       return {
         name: ex.name, target: ex.target, tempo: ex.tempo,
-        sets: Array.from({length:setCount},()=>({weight:"",reps:"",done:false,pr:false}))
+        sets: Array.from({length:setCount},(_,i)=>{
+          const prev = prevSets && prevSets[i] ? prevSets[i] : null;
+          return {
+            weight: prev ? String(prev.weight||"") : "",
+            reps: prev ? String(prev.reps||"") : "",
+            prevWeight: prev ? prev.weight : null,
+            prevReps: prev ? prev.reps : null,
+            done:false, pr:false
+          };
+        })
       };
     })
   };
-  if(started) startSessionClock();
+}
+function markSessionStarted(){
+  if(draft && !draft.started){
+    draft.started = true;
+    draft.startTime = Date.now();
+    startSessionClock();
+  }
 }
 
 /* ============ SESSION CLOCK (persists across tabs) ============ */
@@ -859,7 +897,7 @@ function renderToday(){
 
   const p = PROGRAM[dayNum];
   const dayExercises = getDayExercises(dayNum);
-  const liveDraft = (draft && draft.dayNum===dayNum && draft.date===todayStr() && draft.started) ? draft : null;
+  if(!draft || draft.dayNum!==dayNum || draft.date!==todayStr()) startDraft(dayNum);
 
   html += `<div style="display:flex;justify-content:space-between;align-items:baseline;">
     <div class="session-title">${p.name}</div>
@@ -878,44 +916,7 @@ function renderToday(){
 
   html += `<div class="warmup"><div class="label">WARM-UP</div><ul>${p.warmup.map(w=>`<li>${w}</li>`).join("")}</ul></div>`;
 
-  if(!liveDraft){
-    // PREVIEW MODE — not started yet, or started earlier and this isn't the live day
-    dayExercises.forEach((ex)=>{
-      const best = bestForExercise(ex.name);
-      html += `<div class="exercise-card">
-        <div class="exercise-head">
-          <div>
-            <button class="name-btn" data-formname="${ex.name}"><span class="info-dot">i</span>${ex.name}</button>
-            <div class="target">Target ${ex.target}${best?` · best ${best.weight}×${best.reps}`:''}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px;">
-            ${ex.tempo!=='—'?`<div class="tempo-tag">${ex.tempo}</div>`:''}
-            ${ex.rest>0?`<div class="rest-chip" style="opacity:0.6;">⏱ ${fmtMS(restFor(ex))}</div>`:''}
-          </div>
-        </div>
-      </div>`;
-    });
-    const otherDaySessionActive = draft && draft.started && draft.date===todayStr() && draft.dayNum!==dayNum;
-    html += `<button class="finish-btn" id="startWorkoutBtn">▶ START WORKOUT</button>`;
-    if(otherDaySessionActive){
-      html += `<div style="text-align:center;color:var(--ink-faint);font-size:12px;margin-top:10px;">${draft.dayName} is still in progress — starting this will not affect it, switch back via the session badge above.</div>`;
-    }
-    document.getElementById("app").innerHTML = html;
-    attachDayPicker();
-    document.querySelectorAll('.name-btn').forEach(btn=>{
-      btn.onclick = ()=> openFormModal(btn.dataset.formname);
-    });
-    document.getElementById('startWorkoutBtn').onclick = ()=>{
-      startDraft(dayNum, {start:true});
-      renderToday();
-    };
-    const editBtn = document.getElementById('editDayBtn');
-    if(editBtn) editBtn.onclick = ()=>{ editingDay = editingDay===dayNum?null:dayNum; editingIndex=null; renderToday(); };
-    return;
-  }
-
-  // LIVE LOGGING MODE
-  liveDraft.exercises.forEach((ex,exi)=>{
+  draft.exercises.forEach((ex,exi)=>{
     const best = bestForExercise(ex.name);
     const programEx = dayExercises[exi];
     html += `<div class="exercise-card">
@@ -928,24 +929,37 @@ function renderToday(){
           ${ex.tempo!=='—'?`<div class="tempo-tag">${ex.tempo}</div>`:''}
           ${programEx.rest>0?`<div class="rest-chip" data-restex="${exi}">⏱ ${fmtMS(restFor(programEx))}</div>`:''}
         </div>
+      </div>
+      <div class="set-row set-row-head">
+        <div class="set-num-h">SET</div>
+        <div class="set-prev-h">PREVIOUS</div>
+        <div class="set-h">LBS</div>
+        <div class="set-h">REPS</div>
+        <div class="set-check-h">✓</div>
       </div>`;
     ex.sets.forEach((s,si)=>{
-      html += `<div class="set-row">
-        <div class="set-dot ${s.done?(s.pr?'pr':'done'):''}"></div>
-        <input inputmode="decimal" placeholder="lb" value="${s.weight}" data-exi="${exi}" data-si="${si}" data-field="weight">
-        <input inputmode="numeric" placeholder="reps" value="${s.reps}" data-exi="${exi}" data-si="${si}" data-field="reps">
-        <button class="set-check ${s.done?'on':''}" data-exi="${exi}" data-si="${si}">✓</button>
+      html += `<div class="set-swipe" data-exi="${exi}" data-si="${si}">
+        <div class="set-delete-action" data-exi="${exi}" data-si="${si}">DELETE</div>
+        <div class="set-row">
+          <div class="set-num">${si+1}</div>
+          <div class="set-prev">${s.prevWeight!=null?`${s.prevWeight} lb × ${s.prevReps}`:'—'}</div>
+          <input inputmode="decimal" placeholder="lb" value="${s.weight}" data-exi="${exi}" data-si="${si}" data-field="weight">
+          <input inputmode="numeric" placeholder="reps" value="${s.reps}" data-exi="${exi}" data-si="${si}" data-field="reps">
+          <button class="set-check ${s.done?'on':''}" data-exi="${exi}" data-si="${si}">✓</button>
+        </div>
       </div>`;
     });
+    html += `<button class="add-set-btn" data-exi="${exi}">+ ADD SET ${programEx.rest>0?`(${fmtMS(restFor(programEx))})`:''}</button>`;
     html += `</div>`;
   });
 
-  const anyDone = liveDraft.exercises.some(ex=>ex.sets.some(s=>s.done));
+  const anyDone = draft.exercises.some(ex=>ex.sets.some(s=>s.done));
   html += `<button class="finish-btn" id="finishBtn" ${anyDone?'':'disabled'}>FINISH SESSION</button>`;
 
   document.getElementById("app").innerHTML = html;
   attachDayPicker();
   attachTodayEvents();
+  attachSwipeToDelete();
   const editBtn = document.getElementById('editDayBtn');
   if(editBtn) editBtn.onclick = ()=>{ editingDay = editingDay===dayNum?null:dayNum; editingIndex=null; renderToday(); };
 }
@@ -1038,9 +1052,58 @@ function attachEditPanelEvents(dayNum){
   };
 }
 
+function attachSwipeToDelete(){
+  const REVEAL = -84;
+  document.querySelectorAll('.set-swipe').forEach(wrap=>{
+    const row = wrap.querySelector('.set-row');
+    let startX=0, dragging=false, revealed=false, horizontal=false;
+    row.style.transition = 'transform 0.15s ease';
+    function setX(x){ row.style.transform = `translateX(${x}px)`; }
+    row.addEventListener('touchstart', (e)=>{
+      startX = e.touches[0].clientX; dragging = true; horizontal = false;
+      row.style.transition = 'none';
+    }, {passive:true});
+    row.addEventListener('touchmove', (e)=>{
+      if(!dragging) return;
+      const dx = e.touches[0].clientX - startX;
+      if(!horizontal && Math.abs(dx) > 6) horizontal = true;
+      if(!horizontal) return;
+      e.preventDefault();
+      let next = (revealed?REVEAL:0) + dx;
+      next = Math.max(REVEAL-10, Math.min(10, next));
+      setX(next);
+    }, {passive:false});
+    row.addEventListener('touchend', (e)=>{
+      if(!dragging) return;
+      dragging = false;
+      row.style.transition = 'transform 0.15s ease';
+      const dx = (e.changedTouches[0].clientX - startX);
+      const finalPos = (revealed?REVEAL:0) + dx;
+      if(finalPos < REVEAL/2){ setX(REVEAL); revealed = true; }
+      else { setX(0); revealed = false; }
+    });
+  });
+  document.querySelectorAll('.set-delete-action').forEach(btn=>{
+    btn.onclick = ()=>{
+      const exi = btn.dataset.exi, si = parseInt(btn.dataset.si);
+      draft.exercises[exi].sets.splice(si,1);
+      renderToday();
+    };
+  });
+}
+
 function attachDayPicker(){
   document.querySelectorAll(".day-chip").forEach(btn=>{
-    btn.onclick = ()=>{ selectedDay = parseInt(btn.dataset.day); editingIndex=null; renderToday(); };
+    btn.onclick = ()=>{
+      const target = parseInt(btn.dataset.day);
+      if(draft && draft.started && draft.date===todayStr() && draft.dayNum!==target){
+        const ok = confirm(`${draft.dayName} is in progress. Switching days will discard that unfinished log. Continue?`);
+        if(!ok) return;
+        stopSessionClock();
+        draft = null;
+      }
+      selectedDay = target; editingIndex=null; renderToday();
+    };
   });
 }
 
@@ -1049,10 +1112,18 @@ function attachTodayEvents(){
     inp.oninput = ()=>{
       const exi=inp.dataset.exi, si=inp.dataset.si, field=inp.dataset.field;
       draft.exercises[exi].sets[si][field]=inp.value;
+      if(inp.value.trim()!=="") markSessionStarted();
     };
   });
   document.querySelectorAll('.name-btn').forEach(btn=>{
     btn.onclick = ()=> openFormModal(btn.dataset.formname);
+  });
+  document.querySelectorAll('.add-set-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      const exi = btn.dataset.exi;
+      draft.exercises[exi].sets.push({weight:"", reps:"", prevWeight:null, prevReps:null, done:false, pr:false});
+      renderToday();
+    };
   });
   document.querySelectorAll('.set-check').forEach(btn=>{
     btn.onclick = ()=>{
@@ -1073,6 +1144,7 @@ function attachTodayEvents(){
           startTimer(restFor(programEx), programEx.name);
         }
       } else { s.pr = false; }
+      markSessionStarted();
       renderToday();
     };
   });
