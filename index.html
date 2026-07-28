@@ -385,15 +385,14 @@ const PROGRAM = {
     ]
   },
   3: {
-    name: "Conditioning / Functional",
-    note: "Keep this short and crisp — 10-15 min finisher, not a grind.",
-    warmup: ["General movement flow — 3 min", "Band shoulder dislocates — 10", "Leg swings — 10/side"],
+    name: "VO2max / Conditioning",
+    note: "Main block is 4x4min hard intervals — pace it as sustainable-hard, not an all-out sprint you can't hold for 4 min.",
+    warmup: ["Easy row/bike/ski erg — 6-8 min, building HR gradually", "Band shoulder dislocates — 10", "Leg swings — 10/side"],
     exercises: [
-      {name:"KB Complex (swing+goblet sq+row x8 ea)", target:"4 rounds", tempo:"rest 60s", sets:4, rest:60},
-      {name:"Suitcase Carry", target:"3 x 40yd/side", tempo:"—", sets:3, rest:45},
-      {name:"Rower / Ski Erg / Rope Climb (rotate)", target:"3 x 20-30 sec sprint", tempo:"—", sets:3, rest:60},
-      {name:"Lateral Lunge", target:"3 x 10/side", tempo:"2-0-2", sets:3, rest:45},
-      {name:"EMOM Finisher (12min: KBswing/mtn.climb)", target:"optional", tempo:"—", sets:1, rest:0},
+      {name:"KB Complex (swing+goblet sq+row x8 ea)", target:"3 rounds", tempo:"rest 60s", sets:3, rest:60},
+      {name:"VO2max Intervals (Rower/Ski Erg/Bike)", target:"4 x 4min @ RPE 8-9", tempo:"—", sets:4, rest:180},
+      {name:"Suitcase Carry", target:"2 x 40yd/side", tempo:"—", sets:2, rest:45},
+      {name:"Lateral Lunge", target:"2 x 10/side", tempo:"2-0-2", sets:2, rest:45},
     ]
   },
   4: {
@@ -476,6 +475,11 @@ const FORM_CUES = {
     setup: "Heavy dumbbells at your sides.",
     steps: ["Stand tall, shoulders back, brace core", "Walk with short controlled steps", "Keep grip firm, don't let the weights swing"],
     faults: ["Leaning to one side or letting the shoulders round forward"]
+  },
+  "VO2max Intervals (Rower/Ski Erg/Bike)": {
+    setup: "Pick one steady-state machine — rower, ski erg, or bike — and stay on it for all 4 rounds so effort is comparable round to round.",
+    steps: ["Warm up 6-8 min easy before the first interval", "Each 4-min round: settle into a hard pace by ~30 sec in, hold it — RPE 8-9, breathing hard but not falling apart", "Recover easy (not fully stopped) for the full 3 min between rounds", "Repeat for all 4 rounds, then 5 min easy cool-down"],
+    faults: ["Starting round 1 at an all-out sprint pace — you won't hold it for 4 minutes and the later rounds suffer", "Fully stopping during the 3-min recovery instead of moving easy — active recovery is part of the protocol", "Changing machines between rounds, which makes effort impossible to compare"]
   },
   "KB Complex (swing+goblet sq+row x8 ea)": {
     setup: "One kettlebell, moderate weight for the whole complex.",
@@ -590,7 +594,7 @@ const EXERCISE_CATEGORIES = [
   { label: "Push", names: ["Incline DB Press (1a)","Flat DB Bench Press","Seated DB Shoulder Press (2a)","DB Push Press","Assisted Dip"] },
   { label: "Pull", names: ["Chest-Supported Row (1b)","Single-Arm DB Row","Lat Pulldown / Assisted Pull-Up (2b)","Chin-Up / Assisted Pull-Up","Seated Cable Row","Face Pull"] },
   { label: "Carry & Core", names: ["Farmer's Carry","Suitcase Carry","Pallof Press","Anti-Rotation Core (Pallof/Woodchop)"] },
-  { label: "Conditioning", names: ["KB Complex (swing+goblet sq+row x8 ea)","Rower / Ski Erg / Rope Climb (rotate)","Battle Ropes","Assault Bike / Bike Sprints","EMOM Finisher (12min: KBswing/mtn.climb)"] }
+  { label: "Conditioning", names: ["VO2max Intervals (Rower/Ski Erg/Bike)","KB Complex (swing+goblet sq+row x8 ea)","Rower / Ski Erg / Rope Climb (rotate)","Battle Ropes","Assault Bike / Bike Sprints","EMOM Finisher (12min: KBswing/mtn.climb)"] }
 ];
 
 /* ============ STATE ============ */
