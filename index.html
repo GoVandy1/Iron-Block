@@ -362,7 +362,7 @@ const PROGRAM = {
     note: "No back squat / no axial spinal loading — lumbar arthritis.",
     warmup: ["90/90 hip switch — 8/side", "Glute bridge — 15", "Ankle rocks — 10/side", "Bodyweight goblet squat — 10"],
     exercises: [
-      {name:"Goblet Squat", target:"4 x 8-10", tempo:"3-1-1", sets:4, rest:120},
+      {name:"Box Squat (DB, partial depth)", target:"4 x 8-10", tempo:"3-1-1", sets:4, rest:120},
       {name:"Single-Leg RDL (DB)", target:"3 x 8-10/side", tempo:"3-1-1", sets:3, rest:90},
       {name:"Bulgarian Split Squat (DB)", target:"3 x 8-10/side", tempo:"2-0-2", sets:3, rest:90},
       {name:"Leg Extension Machine", target:"3 x 12-15", tempo:"2-0-2", sets:3, rest:60},
@@ -411,6 +411,16 @@ const PROGRAM = {
 const CYCLE = [1,2,3,0,4,0,0]; // 0 = rest, index by weekday offset from block start
 
 const FORM_CUES = {
+  "Wall Sit (isometric)": {
+    setup: "Back flat against a wall, feet out in front, dumbbells optional held at sides for added load.",
+    steps: ["Slide down until thighs are roughly parallel to the floor — or higher if that's still uncomfortable on the ankle", "Hold the position, weight through mid-foot", "Breathe normally, don't hold your breath", "Slide back up to stand when the time/set is done"],
+    faults: ["Letting knees drift past the toes", "Sinking too low and putting weight through the toes/forefoot instead of mid-foot"]
+  },
+  "Box Squat (DB, partial depth)": {
+    setup: "Hold one dumbbell vertically at chest height, elbows tucked. Set a box or bench behind you at a height well above parallel — high enough that you don't need deep ankle bend to reach it.",
+    steps: ["Feet shoulder-width, toes slightly out", "Sit back and down to the box with control, chest tall", "Lightly touch the box, don't collapse onto it", "Drive through mid-foot to stand — avoid pushing off the toes"],
+    faults: ["Setting the box too low, which forces the same deep ankle dorsiflexion you're trying to avoid", "Rounding the lower back at the bottom", "Bouncing off the box instead of a controlled touch"]
+  },
   "Goblet Squat": {
     setup: "Hold one dumbbell or kettlebell vertically at chest height, elbows tucked.",
     steps: ["Feet shoulder-width, toes slightly out", "Sit hips back and down, chest tall", "Track knees over toes, elbows brush inside knees at bottom", "Drive through mid-foot to stand"],
@@ -589,7 +599,7 @@ const FORM_CUES = {
 };
 
 const EXERCISE_CATEGORIES = [
-  { label: "Squat / Knee-Dominant", names: ["Goblet Squat","Front Squat (DB/KB)","Bulgarian Split Squat (DB)","Leg Extension Machine","Step-Up","Single-Leg Leg Press / Step-Up","Lateral Lunge"] },
+  { label: "Squat / Knee-Dominant", names: ["Box Squat (DB, partial depth)","Wall Sit (isometric)","Goblet Squat","Front Squat (DB/KB)","Bulgarian Split Squat (DB)","Leg Extension Machine","Step-Up","Single-Leg Leg Press / Step-Up","Lateral Lunge"] },
   { label: "Hinge / Hip-Dominant", names: ["Single-Leg RDL (DB)","Trap Bar Deadlift","Conventional / Romanian Deadlift","Hip Thrust (barbell/machine)","Kettlebell Swing","Cable Pull-Through","Reverse Hyper"] },
   { label: "Push", names: ["Incline DB Press (1a)","Flat DB Bench Press","Seated DB Shoulder Press (2a)","DB Push Press","Assisted Dip"] },
   { label: "Pull", names: ["Chest-Supported Row (1b)","Single-Arm DB Row","Lat Pulldown / Assisted Pull-Up (2b)","Chin-Up / Assisted Pull-Up","Seated Cable Row","Face Pull"] },
