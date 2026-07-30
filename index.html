@@ -172,6 +172,14 @@ main{padding:16px; max-width:520px; margin:0 auto;}
   width:100%; margin-top:8px; padding:9px; border-radius:8px; border:1px dashed var(--line);
   background:none; color:var(--ink-dim); font-size:12px; font-weight:700; letter-spacing:0.03em;
 }
+.set-row-nolbs{ grid-template-columns:26px 70px 1fr 34px; }
+.machine-picker{ display:flex; gap:6px; overflow-x:auto; margin-bottom:10px; }
+.machine-chip{
+  flex:0 0 auto; padding:6px 12px; border-radius:16px; font-size:11.5px; font-weight:700;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--ink-dim); white-space:nowrap;
+}
+.machine-chip.active{ background:var(--amber); color:#1a1500; border-color:var(--amber); }
+.unit-note{ color:var(--ink-faint); font-size:11.5px; margin-bottom:8px; font-style:italic; }
 
 .finish-btn{
   width:100%; padding:15px; border:none; border-radius:var(--radius);
@@ -390,8 +398,8 @@ const PROGRAM = {
     warmup: ["Easy row/bike/ski erg — 6-8 min, building HR gradually", "Band shoulder dislocates — 10", "Leg swings — 10/side"],
     exercises: [
       {name:"KB Complex (swing+goblet sq+row x8 ea)", target:"3 rounds", tempo:"rest 60s", sets:3, rest:60},
-      {name:"VO2max Intervals (Rower/Ski Erg/Bike)", target:"4 x 4min @ RPE 8-9", tempo:"—", sets:4, rest:180},
-      {name:"Suitcase Carry", target:"2 x 40yd/side", tempo:"—", sets:2, rest:45},
+      {name:"VO2max Intervals (Rower/Ski Erg/Bike)", target:"4 x 4min @ RPE 8-9", tempo:"—", sets:4, rest:180, unit:"machine_cal", machines:["Assault Bike","Ski Erg","Row","Bike"]},
+      {name:"Suitcase Carry", target:"2 x 40yd/side", tempo:"—", sets:2, rest:45, unit:"laps", unitNote:"Laps around a basketball court"},
       {name:"Lateral Lunge", target:"2 x 10/side", tempo:"2-0-2", sets:2, rest:45},
     ]
   },
@@ -497,8 +505,8 @@ const FORM_CUES = {
     faults: ["Squatting the swing instead of hinging it — real strain risk for your back"]
   },
   "Suitcase Carry": {
-    setup: "One heavy dumbbell at your side, like carrying a suitcase.",
-    steps: ["Stand tall, resist leaning toward the loaded side", "Brace obliques hard", "Walk with control"],
+    setup: "One heavy dumbbell at your side, like carrying a suitcase. Tracked here as laps around a basketball court rather than yards.",
+    steps: ["Stand tall, resist leaning toward the loaded side", "Brace obliques hard", "Walk with control", "Switch sides each lap or as programmed"],
     faults: ["Leaning away from the weight instead of staying upright"]
   },
   "Rower / Ski Erg / Rope Climb (rotate)": {
@@ -614,7 +622,7 @@ function loadState(){
     const raw = localStorage.getItem(STORE_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  return { blockStartDate: todayStr(), history: [], bestLifts: {}, restOverrides: {}, dayOverrides: {} };
+  return { blockStartDate: todayStr(), history: [], bestLifts: {}, restOverrides: {}, dayOverrides: {}, machineChoice: {"VO2max Intervals (Rower/Ski Erg/Bike)":"Assault Bike"} };
 }
 function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -622,6 +630,8 @@ function todayStr(){ return new Date().toISOString().slice(0,10); }
 let state = loadState();
 if(!state.restOverrides) state.restOverrides = {};
 if(!state.dayOverrides) state.dayOverrides = {};
+if(!state.machineChoice) state.machineChoice = {};
+if(!state.machineChoice["VO2max Intervals (Rower/Ski Erg/Bike)"]) state.machineChoice["VO2max Intervals (Rower/Ski Erg/Bike)"] = "Assault Bike";
 let activeTab = "today";
 let editingDay = null; // dayNum currently in edit mode, or null
 let editingIndex = null; // index of exercise being edited in the form, or null = adding new
@@ -648,8 +658,6 @@ function fmtDate(d){
   const dt = new Date(d);
   return dt.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
 }
-function bestForExercise(name){ return state.bestLifts[name] || null; }
-
 /* ============ CUSTOM DAY EXERCISES ============ */
 function getDayExercises(dayNum){
   return state.dayOverrides[dayNum] || PROGRAM[dayNum].exercises;
@@ -810,9 +818,11 @@ document.getElementById('tbPlus').onclick = ()=>adjustTimer(15);
 document.getElementById('tbSkip').onclick = skipTimer;
 
 /* ============ DRAFT SESSION ============ */
-function getPreviousSetData(name){
+function bestKey(name, machine){ return machine ? `${name} — ${machine}` : name; }
+function bestForExercise(name, machine){ return state.bestLifts[bestKey(name,machine)] || null; }
+function getPreviousSetData(name, machine){
   for(const s of state.history){
-    const ex = s.exercises.find(e=>e.name===name);
+    const ex = s.exercises.find(e=>e.name===name && (!machine || e.machine===machine));
     if(ex) return ex.sets;
   }
   return null;
@@ -825,9 +835,10 @@ function startDraft(dayNum){
     dayNum, dayName: p.name, date: todayStr(), startTime: null, started: false,
     exercises: dayExercises.map(ex=>{
       const setCount = deload ? Math.max(2, Math.ceil(ex.sets*0.6)) : ex.sets;
-      const prevSets = getPreviousSetData(ex.name);
+      const machine = ex.unit==='machine_cal' ? (state.machineChoice[ex.name] || ex.machines[0]) : null;
+      const prevSets = getPreviousSetData(ex.name, machine);
       return {
-        name: ex.name, target: ex.target, tempo: ex.tempo,
+        name: ex.name, target: ex.target, tempo: ex.tempo, unit: ex.unit, unitNote: ex.unitNote, machine,
         sets: Array.from({length:setCount},(_,i)=>{
           const prev = prevSets && prevSets[i] ? prevSets[i] : null;
           return {
@@ -931,34 +942,55 @@ function renderToday(){
   html += `<div class="warmup"><div class="label">WARM-UP</div><ul>${p.warmup.map(w=>`<li>${w}</li>`).join("")}</ul></div>`;
 
   draft.exercises.forEach((ex,exi)=>{
-    const best = bestForExercise(ex.name);
+    const best = bestForExercise(ex.name, ex.machine);
     const programEx = dayExercises[exi];
+    const isMachine = ex.unit==='machine_cal';
+    const isLaps = ex.unit==='laps';
+    const noLbs = isMachine;
+    const col2Label = isMachine ? 'CALORIES' : (isLaps ? 'LAPS' : 'REPS');
+    const rowGridClass = noLbs ? 'set-row-nolbs' : '';
+
     html += `<div class="exercise-card">
       <div class="exercise-head">
         <div>
           <button class="name-btn" data-formname="${ex.name}"><span class="info-dot">i</span>${ex.name}</button>
-          <div class="target">Target ${ex.target}${best?` · best ${best.weight}×${best.reps}`:''}</div>
+          <div class="target">Target ${ex.target}${best?` · best ${isMachine?`${best.reps} cal`:`${best.weight}×${best.reps}`}`:''}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px;">
           ${ex.tempo!=='—'?`<div class="tempo-tag">${ex.tempo}</div>`:''}
           ${programEx.rest>0?`<div class="rest-chip" data-restex="${exi}">⏱ ${fmtMS(restFor(programEx))}</div>`:''}
         </div>
-      </div>
-      <div class="set-row set-row-head">
+      </div>`;
+
+    if(isMachine){
+      html += `<div class="machine-picker">`;
+      ex.machines.forEach(m=>{
+        html += `<button class="machine-chip ${ex.machine===m?'active':''}" data-exi="${exi}" data-machine="${m}">${m}</button>`;
+      });
+      html += `</div>`;
+    }
+    if(isLaps && ex.unitNote){
+      html += `<div class="unit-note">${ex.unitNote}</div>`;
+    }
+
+    html += `<div class="set-row set-row-head ${rowGridClass}">
         <div class="set-num-h">SET</div>
         <div class="set-prev-h">PREVIOUS</div>
-        <div class="set-h">LBS</div>
-        <div class="set-h">REPS</div>
+        ${noLbs?'':'<div class="set-h">LBS</div>'}
+        <div class="set-h">${col2Label}</div>
         <div class="set-check-h">✓</div>
       </div>`;
     ex.sets.forEach((s,si)=>{
+      const prevLabel = s.prevWeight!=null
+        ? (isMachine ? `${s.prevReps} cal` : `${s.prevWeight} lb × ${s.prevReps}`)
+        : '—';
       html += `<div class="set-swipe" data-exi="${exi}" data-si="${si}">
         <div class="set-delete-action" data-exi="${exi}" data-si="${si}">DELETE</div>
-        <div class="set-row">
+        <div class="set-row ${rowGridClass}">
           <div class="set-num">${si+1}</div>
-          <div class="set-prev">${s.prevWeight!=null?`${s.prevWeight} lb × ${s.prevReps}`:'—'}</div>
-          <input inputmode="decimal" placeholder="lb" value="${s.weight}" data-exi="${exi}" data-si="${si}" data-field="weight">
-          <input inputmode="numeric" placeholder="reps" value="${s.reps}" data-exi="${exi}" data-si="${si}" data-field="reps">
+          <div class="set-prev">${prevLabel}</div>
+          ${noLbs?'':`<input inputmode="decimal" placeholder="lb" value="${s.weight}" data-exi="${exi}" data-si="${si}" data-field="weight">`}
+          <input inputmode="numeric" placeholder="${isMachine?'cal':(isLaps?'laps':'reps')}" value="${s.reps}" data-exi="${exi}" data-si="${si}" data-field="reps">
           <button class="set-check ${s.done?'on':''}" data-exi="${exi}" data-si="${si}">✓</button>
         </div>
       </div>`;
@@ -1132,6 +1164,26 @@ function attachTodayEvents(){
   document.querySelectorAll('.name-btn').forEach(btn=>{
     btn.onclick = ()=> openFormModal(btn.dataset.formname);
   });
+  document.querySelectorAll('.machine-chip').forEach(btn=>{
+    btn.onclick = ()=>{
+      const exi = btn.dataset.exi, machine = btn.dataset.machine;
+      const ex = draft.exercises[exi];
+      ex.machine = machine;
+      state.machineChoice[ex.name] = machine;
+      saveState();
+      const prevSets = getPreviousSetData(ex.name, machine);
+      ex.sets.forEach((s,i)=>{
+        const prev = prevSets && prevSets[i] ? prevSets[i] : null;
+        s.prevWeight = prev ? prev.weight : null;
+        s.prevReps = prev ? prev.reps : null;
+        if(!s.done){
+          s.weight = prev ? String(prev.weight||"") : "";
+          s.reps = prev ? String(prev.reps||"") : "";
+        }
+      });
+      renderToday();
+    };
+  });
   document.querySelectorAll('.add-set-btn').forEach(btn=>{
     btn.onclick = ()=>{
       const exi = btn.dataset.exi;
@@ -1179,6 +1231,7 @@ function finishSession(){
   const loggedExercises = draft.exercises
     .map(ex=>({
       name: ex.name,
+      machine: ex.machine || null,
       sets: ex.sets.filter(s=>s.done && (s.weight||s.reps)).map(s=>({weight:s.weight, reps:s.reps, pr:!!s.pr}))
     }))
     .filter(ex=>ex.sets.length>0);
@@ -1197,11 +1250,12 @@ function finishSession(){
   state.history.unshift(session);
 
   loggedExercises.forEach(ex=>{
+    const key = bestKey(ex.name, ex.machine);
     ex.sets.forEach(s=>{
       const w = parseFloat(s.weight)||0, r=parseInt(s.reps)||0;
-      const best = state.bestLifts[ex.name];
+      const best = state.bestLifts[key];
       if(!best || w>best.weight || (w===best.weight && r>best.reps)){
-        state.bestLifts[ex.name] = {weight:w, reps:r, date:session.date};
+        state.bestLifts[key] = {weight:w, reps:r, date:session.date};
       }
     });
   });
@@ -1284,9 +1338,12 @@ function renderHistory(){
       }
       const rows = s.exercises.map(ex=>{
         const best = bestSetOf(ex.sets);
+        const isMachine = !!ex.machine;
+        const label = isMachine ? `${ex.name} (${ex.machine})` : ex.name;
+        const bestLabel = isMachine ? `${best.reps} cal` : `${best.weight||'BW'} lb × ${best.reps}`;
         return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px;">
-          <span style="color:var(--ink-dim);">${ex.sets.length} × ${ex.name}</span>
-          <span style="font-weight:700;flex-shrink:0;margin-left:10px;">${best.weight||'BW'} lb × ${best.reps}${ex.sets.some(x=>x.pr)?' 🏆':''}</span>
+          <span style="color:var(--ink-dim);">${ex.sets.length} × ${label}</span>
+          <span style="font-weight:700;flex-shrink:0;margin-left:10px;">${bestLabel}${ex.sets.some(x=>x.pr)?' 🏆':''}</span>
         </div>`;
       }).join("");
       html += `<div class="hist-item">
@@ -1424,7 +1481,7 @@ function renderSettings(){
   };
   document.getElementById("resetBtn").onclick = ()=>{
     if(confirm("Erase all logged workouts and best lifts? This can't be undone.")){
-      state = { blockStartDate: todayStr(), history: [], bestLifts: {}, restOverrides: {}, dayOverrides: {} };
+      state = { blockStartDate: todayStr(), history: [], bestLifts: {}, restOverrides: {}, dayOverrides: {}, machineChoice: {} };
       saveState(); render();
     }
   };
