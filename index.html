@@ -100,6 +100,8 @@ main{padding:16px; max-width:520px; margin:0 auto;}
   white-space:nowrap;
 }
 .day-chip.active{background:var(--amber); color:#1a1500; border-color:var(--amber);}
+.day-chip.done{background:var(--green); color:#0d1a10; border-color:var(--green);}
+.day-chip.done.active{background:var(--amber); color:#1a1500; border-color:var(--green); border-width:2px;}
 
 .block-banner{
   display:flex; justify-content:space-between; align-items:center;
@@ -637,6 +639,7 @@ let editingDay = null; // dayNum currently in edit mode, or null
 let editingIndex = null; // index of exercise being edited in the form, or null = adding new
 let selectedDay = null; // manual override for today view
 let draft = null; // in-progress session
+let previewWeek = null; // week label 1-4 being browsed; null = real current week
 
 /* ============ HELPERS ============ */
 function weekInBlock(){
@@ -647,6 +650,23 @@ function weekInBlock(){
   return ((week-1)%4)+1;
 }
 function isDeloadWeek(){ return weekInBlock()===4; }
+function currentWeekDateRange(){
+  const start = new Date(state.blockStartDate);
+  const now = new Date(todayStr());
+  const daysSince = Math.floor((now-start)/86400000);
+  const weekIndex = Math.floor(daysSince/7);
+  const weekStart = new Date(start); weekStart.setDate(weekStart.getDate()+weekIndex*7);
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate()+6);
+  return {start:weekStart, end:weekEnd};
+}
+function isDayCompletedThisWeek(dayNum){
+  const {start,end} = currentWeekDateRange();
+  return state.history.some(s=>{
+    if(s.dayNum!==dayNum) return false;
+    const d = new Date(s.date);
+    return d>=start && d<=end;
+  });
+}
 function currentDayNumber(){
   const start = new Date(state.blockStartDate);
   const now = new Date(todayStr());
@@ -896,19 +916,30 @@ document.getElementById('sessionBadge').onclick = ()=>{
 /* ============ RENDER: TODAY ============ */
 function renderToday(){
   const dayNum = selectedDay ?? currentDayNumber();
+  const realWeek = weekInBlock();
+  const displayWeek = previewWeek ?? realWeek;
+  const isPreview = displayWeek !== realWeek;
   let html = "";
 
-  html += `<div class="block-banner ${isDeloadWeek()?'deload':''}">
+  html += `<div class="block-banner ${(isPreview? displayWeek===4 : isDeloadWeek())?'deload':''}">
     <div>
-      <div class="label">${isDeloadWeek()?'DELOAD WEEK':'TRAINING BLOCK'}</div>
-      <div style="color:var(--ink-dim);font-size:12.5px;margin-top:2px;">${isDeloadWeek()?'Lighter loads, fewer sets, dial in quality':'Progress reps → then load'}</div>
+      <div class="label">${isPreview?`PREVIEWING WEEK ${displayWeek}`:(isDeloadWeek()?'DELOAD WEEK':'TRAINING BLOCK')}</div>
+      <div style="color:var(--ink-dim);font-size:12.5px;margin-top:2px;">${displayWeek===4?'Lighter loads, fewer sets, dial in quality':'Progress reps → then load'}</div>
     </div>
-    <div class="w">W${weekInBlock()}<span style="font-size:14px;color:var(--ink-dim);">/4</span></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="weekPrev" ${displayWeek<=1?'disabled':''} style="background:none;border:none;color:${displayWeek<=1?'var(--ink-faint)':'var(--ink-dim)'};font-size:18px;padding:4px 6px;">‹</button>
+      <div class="w">W${displayWeek}<span style="font-size:14px;color:var(--ink-dim);">/4</span></div>
+      <button id="weekNext" ${displayWeek>=4?'disabled':''} style="background:none;border:none;color:${displayWeek>=4?'var(--ink-faint)':'var(--ink-dim)'};font-size:18px;padding:4px 6px;">›</button>
+    </div>
   </div>`;
+  if(isPreview){
+    html += `<div style="text-align:center;margin-bottom:12px;"><button id="backToCurrentBtn" style="background:var(--surface-2);border:1px solid var(--line);color:var(--amber);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;">← BACK TO CURRENT WEEK (W${realWeek})</button></div>`;
+  }
 
   html += `<div class="day-picker">`;
   for(let i=1;i<=4;i++){
-    html += `<button class="day-chip ${i===dayNum?'active':''}" data-day="${i}">Day ${i}</button>`;
+    const done = !isPreview && isDayCompletedThisWeek(i);
+    html += `<button class="day-chip ${i===dayNum?'active':''} ${done?'done':''}" data-day="${i}">${done?'✓ ':''}Day ${i}</button>`;
   }
   html += `<button class="day-chip ${dayNum===0?'active':''}" data-day="0">Rest</button>`;
   html += `</div>`;
@@ -917,23 +948,36 @@ function renderToday(){
     html += `<div class="rest-note">Rest day.<br>Recovery is part of the program, not a gap in it.</div>`;
     document.getElementById("app").innerHTML = html;
     attachDayPicker();
+    attachWeekNav(realWeek);
     return;
   }
 
   const p = PROGRAM[dayNum];
   const dayExercises = getDayExercises(dayNum);
-  if(!draft || draft.dayNum!==dayNum || draft.date!==todayStr()) startDraft(dayNum);
 
   html += `<div style="display:flex;justify-content:space-between;align-items:baseline;">
     <div class="session-title">${p.name}</div>
-    <button id="editDayBtn" style="background:none;border:1px solid var(--line);color:var(--ink-dim);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;letter-spacing:0.04em;">${editingDay===dayNum?'CLOSE EDIT':'✎ EDIT DAY'}</button>
+    ${isPreview?'':`<button id="editDayBtn" style="background:none;border:1px solid var(--line);color:var(--ink-dim);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;letter-spacing:0.04em;">${editingDay===dayNum?'CLOSE EDIT':'✎ EDIT DAY'}</button>`}
   </div>`;
   html += `<div class="session-meta">${p.note}</div>`;
+
+  if(isPreview){
+    html += `<div class="warmup"><div class="label">WARM-UP</div><ul>${p.warmup.map(w=>`<li>${w}</li>`).join("")}</ul></div>`;
+    html += renderExercisePreview(dayExercises, displayWeek===4);
+    document.getElementById("app").innerHTML = html;
+    attachDayPicker();
+    attachWeekNav(realWeek);
+    document.querySelectorAll('.name-btn').forEach(btn=>{ btn.onclick = ()=> openFormModal(btn.dataset.formname); });
+    return;
+  }
+
+  if(!draft || draft.dayNum!==dayNum || draft.date!==todayStr()) startDraft(dayNum);
 
   if(editingDay===dayNum){
     html += renderEditPanel(dayNum, dayExercises);
     document.getElementById("app").innerHTML = html;
     attachDayPicker();
+    attachWeekNav(realWeek);
     attachEditPanelEvents(dayNum);
     document.getElementById('editDayBtn').onclick = ()=>{ editingDay = null; editingIndex=null; renderToday(); };
     return;
@@ -1004,6 +1048,7 @@ function renderToday(){
 
   document.getElementById("app").innerHTML = html;
   attachDayPicker();
+  attachWeekNav(realWeek);
   attachTodayEvents();
   attachSwipeToDelete();
   const editBtn = document.getElementById('editDayBtn');
@@ -1138,6 +1183,37 @@ function attachSwipeToDelete(){
   });
 }
 
+function attachWeekNav(realWeek){
+  const prev = document.getElementById('weekPrev');
+  const next = document.getElementById('weekNext');
+  const back = document.getElementById('backToCurrentBtn');
+  const current = previewWeek ?? realWeek;
+  if(prev) prev.onclick = ()=>{ if(current>1){ previewWeek = current-1; renderToday(); } };
+  if(next) next.onclick = ()=>{ if(current<4){ previewWeek = current+1; renderToday(); } };
+  if(back) back.onclick = ()=>{ previewWeek = null; renderToday(); };
+}
+function renderExercisePreview(dayExercises, deloadPreview){
+  let html = "";
+  dayExercises.forEach(ex=>{
+    const setCount = deloadPreview ? Math.max(2, Math.ceil(ex.sets*0.6)) : ex.sets;
+    const machine = ex.unit==='machine_cal' ? (state.machineChoice[ex.name]||ex.machines[0]) : null;
+    const best = bestForExercise(ex.name, machine);
+    const bestLabel = best ? (ex.unit==='machine_cal' ? ` · best ${best.reps} cal` : ` · best ${best.weight}×${best.reps}`) : '';
+    html += `<div class="exercise-card">
+      <div class="exercise-head">
+        <div>
+          <button class="name-btn" data-formname="${ex.name}"><span class="info-dot">i</span>${ex.name}</button>
+          <div class="target">Target ${ex.target} · ${setCount} set${setCount===1?'':'s'}${bestLabel}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px;">
+          ${ex.tempo!=='—'?`<div class="tempo-tag">${ex.tempo}</div>`:''}
+          ${ex.rest>0?`<div class="rest-chip" style="opacity:0.55;">⏱ ${fmtMS(restFor(ex))}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  });
+  return html;
+}
 function attachDayPicker(){
   document.querySelectorAll(".day-chip").forEach(btn=>{
     btn.onclick = ()=>{
