@@ -858,7 +858,7 @@ function startDraft(dayNum){
       const machine = ex.unit==='machine_cal' ? (state.machineChoice[ex.name] || ex.machines[0]) : null;
       const prevSets = getPreviousSetData(ex.name, machine);
       return {
-        name: ex.name, target: ex.target, tempo: ex.tempo, unit: ex.unit, unitNote: ex.unitNote, machine,
+        name: ex.name, target: ex.target, tempo: ex.tempo, unit: ex.unit, unitNote: ex.unitNote, machine, machines: ex.machines,
         sets: Array.from({length:setCount},(_,i)=>{
           const prev = prevSets && prevSets[i] ? prevSets[i] : null;
           return {
