@@ -391,7 +391,7 @@ const PROGRAM = {
       {name:"Lat Pulldown / Assisted Pull-Up (2b)", target:"3 x 8-10", tempo:"2-0-2", sets:3, rest:75},
       {name:"Single-Arm DB Row", target:"3 x 10-12/side", tempo:"3-1-1", sets:3, rest:60},
       {name:"Face Pull", target:"3 x 12-15", tempo:"controlled", sets:3, rest:45},
-      {name:"Farmer's Carry", target:"3 x 40yd", tempo:"—", sets:3, rest:60},
+      {name:"Farmer's Carry", target:"3 x laps", tempo:"—", sets:3, rest:60, unit:"laps", unitNote:"Laps around a basketball court"},
     ]
   },
   3: {
@@ -401,7 +401,7 @@ const PROGRAM = {
     exercises: [
       {name:"KB Complex (swing+goblet sq+row x8 ea)", target:"3 rounds", tempo:"rest 60s", sets:3, rest:60},
       {name:"VO2max Intervals (Rower/Ski Erg/Bike)", target:"4 x 4min @ RPE 8-9", tempo:"—", sets:4, rest:180, unit:"machine_cal", machines:["Assault Bike","Ski Erg","Row","Bike"]},
-      {name:"Suitcase Carry", target:"2 x 40yd/side", tempo:"—", sets:2, rest:45, unit:"laps", unitNote:"Laps around a basketball court"},
+      {name:"Suitcase Carry", target:"2 x laps/side", tempo:"—", sets:2, rest:45, unit:"laps", unitNote:"Laps around a basketball court"},
       {name:"Lateral Lunge", target:"2 x 10/side", tempo:"2-0-2", sets:2, rest:45},
     ]
   },
@@ -492,7 +492,7 @@ const FORM_CUES = {
     faults: ["Pulling low, turning it into a row instead of a rear-delt/rotator movement"]
   },
   "Farmer's Carry": {
-    setup: "Heavy dumbbells at your sides.",
+    setup: "Heavy dumbbells at your sides, one in each hand. Tracked here as laps around a basketball court rather than yards.",
     steps: ["Stand tall, shoulders back, brace core", "Walk with short controlled steps", "Keep grip firm, don't let the weights swing"],
     faults: ["Leaning to one side or letting the shoulders round forward"]
   },
