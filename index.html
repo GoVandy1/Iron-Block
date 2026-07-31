@@ -165,6 +165,10 @@ main{padding:16px; max-width:520px; margin:0 auto;}
   font-family:"Arial Narrow",sans-serif; font-weight:700; font-stretch:condensed;
 }
 .set-row input::placeholder{color:var(--ink-faint); font-weight:400;}
+.set-row select{
+  width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--ink);
+  border-radius:8px; padding:8px 2px; font-size:13px; text-align:center; font-weight:700;
+}
 .set-check{
   width:32px; height:32px; border-radius:8px; border:1px solid var(--line);
   background:var(--surface-2); color:var(--ink-dim); font-size:15px;
@@ -235,6 +239,10 @@ nav.tabs button.active{color:var(--amber);}
 .rest-chip{
   font-size:11px; font-weight:700; color:var(--ink-dim); background:var(--surface-2);
   padding:3px 8px; border-radius:8px; white-space:nowrap; margin-left:6px;
+}
+.skip-today-btn{
+  background:none; border:none; color:var(--ink-faint); font-size:10.5px; font-weight:600;
+  text-decoration:underline; padding:2px 0;
 }
 
 /* ---- Form cue modal ---- */
@@ -376,7 +384,7 @@ const PROGRAM = {
       {name:"Single-Leg RDL (DB)", target:"3 x 8-10/side", tempo:"3-1-1", sets:3, rest:90},
       {name:"Bulgarian Split Squat (DB)", target:"3 x 8-10/side", tempo:"2-0-2", sets:3, rest:90},
       {name:"Leg Extension Machine", target:"3 x 12-15", tempo:"2-0-2", sets:3, rest:60},
-      {name:"Pallof Press", target:"3 x 10-12/side", tempo:"controlled", sets:3, rest:45},
+      {name:"Pallof Press", target:"3 x 10-12/side", tempo:"controlled", sets:3, rest:45, field1:"band", field2:"reps", bandColors:["Yellow","Green","Red","Blue","Black","Silver"]},
       {name:"Reverse Hyper", target:"3 x 15-20", tempo:"controlled", sets:3, rest:60},
     ]
   },
@@ -391,7 +399,7 @@ const PROGRAM = {
       {name:"Lat Pulldown / Assisted Pull-Up (2b)", target:"3 x 8-10", tempo:"2-0-2", sets:3, rest:75},
       {name:"Single-Arm DB Row", target:"3 x 10-12/side", tempo:"3-1-1", sets:3, rest:60},
       {name:"Face Pull", target:"3 x 12-15", tempo:"controlled", sets:3, rest:45},
-      {name:"Farmer's Carry", target:"3 x laps", tempo:"—", sets:3, rest:60, unit:"laps", unitNote:"Laps around a basketball court"},
+      {name:"Farmer's Carry", target:"3 x laps", tempo:"—", sets:3, rest:60, field1:"lbs", field2:"laps", unitNote:"Laps around a basketball court"},
     ]
   },
   3: {
@@ -400,21 +408,24 @@ const PROGRAM = {
     warmup: ["Easy row/bike/ski erg — 6-8 min, building HR gradually", "Band shoulder dislocates — 10", "Leg swings — 10/side"],
     exercises: [
       {name:"KB Complex (swing+goblet sq+row x8 ea)", target:"3 rounds", tempo:"rest 60s", sets:3, rest:60},
-      {name:"VO2max Intervals (Rower/Ski Erg/Bike)", target:"4 x 4min @ RPE 8-9", tempo:"—", sets:4, rest:180, unit:"machine_cal", machines:["Assault Bike","Ski Erg","Row","Bike"]},
-      {name:"Suitcase Carry", target:"2 x laps/side", tempo:"—", sets:2, rest:45, unit:"laps", unitNote:"Laps around a basketball court"},
+      {name:"VO2max Intervals (Rower/Ski Erg/Bike)", target:"4 x 4min @ RPE 8-9", tempo:"—", sets:4, rest:180, field1:"calories", field2:null, machines:["Assault Bike","Ski Erg","Row","Bike","Rope Pull Machine"]},
+      {name:"Suitcase Carry", target:"2 x laps/side", tempo:"—", sets:2, rest:45, field1:"lbs", field2:"laps", unitNote:"Laps around a basketball court"},
       {name:"Lateral Lunge", target:"2 x 10/side", tempo:"2-0-2", sets:2, rest:45},
     ]
   },
   4: {
     name: "Full Body Strength",
-    note: "Trap bar deadlift: start light, test spine tolerance. Sub hip thrust if it aggravates.",
+    note: "Hip thrust: watch for lumbar hyperextension at lockout. Toes to Bar: strict, no kipping/swinging — stop if you feel it in your lower back, not just your abs.",
     warmup: ["Hip hinge drill w/ dowel — 10", "Glute bridge — 15", "Band pull-apart — 15"],
     exercises: [
       {name:"Hip Thrust (barbell/machine)", target:"4 x 6-8", tempo:"controlled", sets:4, rest:120},
       {name:"Single-Leg Leg Press / Step-Up", target:"3 x 10/side", tempo:"2-0-2", sets:3, rest:90},
       {name:"DB Push Press", target:"3 x 6-8", tempo:"—", sets:3, rest:90},
       {name:"Chin-Up / Assisted Pull-Up", target:"3 x 6-10", tempo:"2-0-2", sets:3, rest:90},
-      {name:"Anti-Rotation Core (Pallof/Woodchop)", target:"3 x 10-12/side", tempo:"controlled", sets:3, rest:45},
+      {name:"DB Bicep Curl", target:"3 x 10-12", tempo:"2-0-2", sets:3, rest:45},
+      {name:"Anti-Rotation Core (Pallof/Woodchop)", target:"3 x 10-12/side", tempo:"controlled", sets:3, rest:45, field1:"band", field2:"reps", bandColors:["Yellow","Green","Red","Blue","Black","Silver"]},
+      {name:"Toes to Bar (strict)", target:"3 x 6-10", tempo:"controlled", sets:3, rest:60},
+      {name:"10-Min Finisher (KB Swing/Battle Rope/Row)", target:"1 round", tempo:"—", sets:1, rest:0},
     ]
   }
 };
@@ -452,7 +463,7 @@ const FORM_CUES = {
     faults: ["Using momentum/swinging the weight up instead of a controlled extension", "Setting the seat so the pad sits on the ankle instead of the shin — reposition if so"]
   },
   "Pallof Press": {
-    setup: "Cable or band at chest height, stand perpendicular to the anchor.",
+    setup: "Band anchored at chest height, stand perpendicular to it. Tracked here by band color rather than weight — color-to-resistance varies by brand/set, so this just needs to be consistent for you over time.",
     steps: ["Hold the handle at chest, arms bent", "Press straight out, resist the rotation pulling you toward the anchor", "Hold 1-2 sec, return to chest"],
     faults: ["Letting the torso rotate toward the anchor", "Pressing with arms only instead of bracing the core"]
   },
@@ -547,7 +558,7 @@ const FORM_CUES = {
     faults: ["Only doing the top half of the range of motion"]
   },
   "Anti-Rotation Core (Pallof/Woodchop)": {
-    setup: "Same stance as a Pallof Press, or a cable woodchop setup.",
+    setup: "Same stance as a Pallof Press, or a cable woodchop setup. Tracked by band color, same as Pallof Press.",
     steps: ["Brace core, resist the pull/twist rather than adding rotation", "Move slowly and under control", "Keep hips square throughout"],
     faults: ["Letting the torso rotate instead of resisting rotation"]
   },
@@ -591,11 +602,6 @@ const FORM_CUES = {
     steps: ["Lower until shoulders are level with elbows, no deeper", "Press back up, torso slightly forward-leaning for chest emphasis", "Control the descent"],
     faults: ["Going too deep, straining the front of the shoulder"]
   },
-  "Seated Cable Row": {
-    setup: "Feet on the platform, knees soft, handle at chest height.",
-    steps: ["Pull the handle to your torso, elbows back", "Squeeze shoulder blades at end range", "Return with control, full stretch"],
-    faults: ["Using the low back to yank the weight instead of the lats/mid-back"]
-  },
   "Battle Ropes": {
     setup: "Anchor point, one rope end per hand, athletic stance.",
     steps: ["Alternate or double-arm waves, drive from the shoulders and core", "Keep knees soft, stay athletic", "Maintain continuous tension in the rope"],
@@ -605,6 +611,26 @@ const FORM_CUES = {
     setup: "Seated, feet on pedals, hands on the moving handles if using an assault bike.",
     steps: ["Pedal at a hard, sustainable-for-the-interval pace", "Push and pull with the arms on an assault bike for full-body effort", "Keep a stable seated position, no bouncing"],
     faults: ["Going all-out for the first 5 seconds and cratering for the rest of the interval"]
+  },
+  "DB Bicep Curl": {
+    setup: "Dumbbells at your sides, palms facing forward.",
+    steps: ["Curl without swinging the torso or using momentum", "Squeeze at the top", "Lower fully under control, don't stop halfway"],
+    faults: ["Swinging the torso/hips to heave the weight up", "Only using the top half of the range of motion"]
+  },
+  "Toes to Bar (strict)": {
+    setup: "Dead hang from a pull-up bar, strict — no kip, no swing to start.",
+    steps: ["Brace core hard before initiating", "Raise legs straight (or with a slight knee bend if needed) until toes reach the bar", "Lower with control, don't let momentum take over on the way down"],
+    faults: ["Kipping/swinging to generate momentum instead of controlled core-driven movement — this is the fault that matters most for you given your lumbar arthritis, since the swing loads the low back under tension", "Yanking with the arms instead of lifting with the core", "Continuing through the set if you feel it in your lower back rather than your abs — stop and regress to hanging knee raises instead"]
+  },
+  "10-Min Finisher (KB Swing/Battle Rope/Row)": {
+    setup: "Set a running clock for 10 minutes. Rotate through the three movements continuously.",
+    steps: ["~45 sec Kettlebell Swings, hinge-driven, moderate weight", "~45 sec Battle Ropes", "~45 sec Row (moderate-hard pace, not a max sprint)", "Rest ~15-30 sec if needed, repeat the rotation until 10 minutes is up"],
+    faults: ["Turning the KB swings into a squat under fatigue instead of maintaining the hip hinge — this is the one to watch as you tire", "Going all-out from minute 1 and having nothing left by minute 6"]
+  },
+  "Rope Pull Machine": {
+    setup: "Standing rope-pull/climbing machine. Tracked here by calories and time together, separate from the fixed 4-minute VO2max block — use this for variable-length hard efforts.",
+    steps: ["Drive through the legs as much as pulling with the arms — this is a full-body effort, not just a grip/arm exercise", "Keep a steady rhythm rather than short frantic yanks", "Log both calories and the time it took you to hit them, so pace is comparable session to session"],
+    faults: ["Pulling with the arms/back only and skipping the leg drive", "Not logging time alongside calories — calories alone don't tell you if you went hard for 2 minutes or moderate for 5"]
   }
 };
 
@@ -612,9 +638,10 @@ const EXERCISE_CATEGORIES = [
   { label: "Squat / Knee-Dominant", names: ["Box Squat (DB, partial depth)","Wall Sit (isometric)","Goblet Squat","Front Squat (DB/KB)","Bulgarian Split Squat (DB)","Leg Extension Machine","Step-Up","Single-Leg Leg Press / Step-Up","Lateral Lunge"] },
   { label: "Hinge / Hip-Dominant", names: ["Single-Leg RDL (DB)","Trap Bar Deadlift","Conventional / Romanian Deadlift","Hip Thrust (barbell/machine)","Kettlebell Swing","Cable Pull-Through","Reverse Hyper"] },
   { label: "Push", names: ["Incline DB Press (1a)","Flat DB Bench Press","Seated DB Shoulder Press (2a)","DB Push Press","Assisted Dip"] },
-  { label: "Pull", names: ["Chest-Supported Row (1b)","Single-Arm DB Row","Lat Pulldown / Assisted Pull-Up (2b)","Chin-Up / Assisted Pull-Up","Seated Cable Row","Face Pull"] },
-  { label: "Carry & Core", names: ["Farmer's Carry","Suitcase Carry","Pallof Press","Anti-Rotation Core (Pallof/Woodchop)"] },
-  { label: "Conditioning", names: ["VO2max Intervals (Rower/Ski Erg/Bike)","KB Complex (swing+goblet sq+row x8 ea)","Rower / Ski Erg / Rope Climb (rotate)","Battle Ropes","Assault Bike / Bike Sprints","EMOM Finisher (12min: KBswing/mtn.climb)"] }
+  { label: "Pull", names: ["Chest-Supported Row (1b)","Single-Arm DB Row","Lat Pulldown / Assisted Pull-Up (2b)","Chin-Up / Assisted Pull-Up","Face Pull"] },
+  { label: "Arms", names: ["DB Bicep Curl"] },
+  { label: "Carry & Core", names: ["Farmer's Carry","Suitcase Carry","Pallof Press","Anti-Rotation Core (Pallof/Woodchop)","Toes to Bar (strict)"] },
+  { label: "Conditioning", names: ["VO2max Intervals (Rower/Ski Erg/Bike)","Rope Pull Machine","10-Min Finisher (KB Swing/Battle Rope/Row)","KB Complex (swing+goblet sq+row x8 ea)","Rower / Ski Erg / Rope Climb (rotate)","Battle Ropes","Assault Bike / Bike Sprints","EMOM Finisher (12min: KBswing/mtn.climb)"] }
 ];
 
 /* ============ STATE ============ */
@@ -838,6 +865,24 @@ document.getElementById('tbPlus').onclick = ()=>adjustTimer(15);
 document.getElementById('tbSkip').onclick = skipTimer;
 
 /* ============ DRAFT SESSION ============ */
+const FIELD_META = {
+  lbs:      { label:"LBS",      ph:"lb",   suffix:"lb",  kind:"number" },
+  reps:     { label:"REPS",     ph:"reps", suffix:"",    kind:"number" },
+  calories: { label:"CALORIES",ph:"cal",   suffix:"cal", kind:"number" },
+  laps:     { label:"LAPS",     ph:"laps", suffix:"laps",kind:"number" },
+  time:     { label:"MIN",      ph:"min",  suffix:"min", kind:"number" },
+  band:     { label:"BAND",     ph:"",     suffix:"",    kind:"select" }
+};
+function getField1(ex){ return ex.field1 || "lbs"; }
+function getField2(ex){ return ex.field2===undefined ? "reps" : ex.field2; }
+function isSingleField(ex){ return getField2(ex)===null; }
+function formatMetric(ex, w, r){
+  const f1 = getField1(ex), f2 = getField2(ex);
+  if(f2===null) return `${r} ${FIELD_META[f1].suffix}`.trim();
+  if(f1==='band') return `${w} × ${r}`;
+  if(f1==='lbs') return `${w} lb × ${r}`;
+  return `${w}${FIELD_META[f1].suffix} / ${r}${FIELD_META[f2].suffix}`;
+}
 function bestKey(name, machine){ return machine ? `${name} — ${machine}` : name; }
 function bestForExercise(name, machine){ return state.bestLifts[bestKey(name,machine)] || null; }
 function getPreviousSetData(name, machine){
@@ -858,7 +903,7 @@ function startDraft(dayNum){
       const machine = ex.unit==='machine_cal' ? (state.machineChoice[ex.name] || ex.machines[0]) : null;
       const prevSets = getPreviousSetData(ex.name, machine);
       return {
-        name: ex.name, target: ex.target, tempo: ex.tempo, unit: ex.unit, unitNote: ex.unitNote, machine, machines: ex.machines,
+        name: ex.name, target: ex.target, tempo: ex.tempo, field1: ex.field1, field2: ex.field2, unitNote: ex.unitNote, machine, machines: ex.machines, bandColors: ex.bandColors,
         sets: Array.from({length:setCount},(_,i)=>{
           const prev = prevSets && prevSets[i] ? prevSets[i] : null;
           return {
@@ -988,53 +1033,61 @@ function renderToday(){
   draft.exercises.forEach((ex,exi)=>{
     const best = bestForExercise(ex.name, ex.machine);
     const programEx = dayExercises[exi];
-    const isMachine = ex.unit==='machine_cal';
-    const isLaps = ex.unit==='laps';
-    const noLbs = isMachine;
-    const col2Label = isMachine ? 'CALORIES' : (isLaps ? 'LAPS' : 'REPS');
-    const rowGridClass = noLbs ? 'set-row-nolbs' : '';
+    const single = isSingleField(ex);
+    const f1 = getField1(ex), f2 = getField2(ex);
+    const hasMachinePicker = !!(ex.machines && ex.machines.length);
+    const rowGridClass = single ? 'set-row-nolbs' : '';
 
     html += `<div class="exercise-card">
       <div class="exercise-head">
         <div>
           <button class="name-btn" data-formname="${ex.name}"><span class="info-dot">i</span>${ex.name}</button>
-          <div class="target">Target ${ex.target}${best?` · best ${isMachine?`${best.reps} cal`:`${best.weight}×${best.reps}`}`:''}</div>
+          <div class="target">Target ${ex.target}${best?` · best ${formatMetric(ex, best.weight, best.reps)}`:''}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px;">
           ${ex.tempo!=='—'?`<div class="tempo-tag">${ex.tempo}</div>`:''}
           ${programEx.rest>0?`<div class="rest-chip" data-restex="${exi}">⏱ ${fmtMS(restFor(programEx))}</div>`:''}
+          <button class="skip-today-btn" data-exi="${exi}" data-name="${ex.name}">skip today</button>
         </div>
       </div>`;
 
-    if(isMachine){
+    if(hasMachinePicker){
       html += `<div class="machine-picker">`;
-      ex.machines.forEach(m=>{
+      (ex.machines||[]).forEach(m=>{
         html += `<button class="machine-chip ${ex.machine===m?'active':''}" data-exi="${exi}" data-machine="${m}">${m}</button>`;
       });
       html += `</div>`;
     }
-    if(isLaps && ex.unitNote){
+    if(ex.unitNote){
       html += `<div class="unit-note">${ex.unitNote}</div>`;
     }
 
     html += `<div class="set-row set-row-head ${rowGridClass}">
         <div class="set-num-h">SET</div>
         <div class="set-prev-h">PREVIOUS</div>
-        ${noLbs?'':'<div class="set-h">LBS</div>'}
-        <div class="set-h">${col2Label}</div>
+        ${single?'':`<div class="set-h">${FIELD_META[f1].label}</div>`}
+        <div class="set-h">${single?FIELD_META[f1].label:FIELD_META[f2].label}</div>
         <div class="set-check-h">✓</div>
       </div>`;
     ex.sets.forEach((s,si)=>{
-      const prevLabel = s.prevWeight!=null
-        ? (isMachine ? `${s.prevReps} cal` : `${s.prevWeight} lb × ${s.prevReps}`)
-        : '—';
+      const prevLabel = s.prevWeight!=null ? formatMetric(ex, s.prevWeight, s.prevReps) : '—';
+      let col1Input;
+      if(single){
+        col1Input = '';
+      } else if(f1==='band'){
+        const opts = (ex.bandColors||[]).map(c=>`<option value="${c}" ${s.weight===c?'selected':''}>${c}</option>`).join('');
+        col1Input = `<select data-exi="${exi}" data-si="${si}" data-field="weight" class="band-select"><option value="">Band</option>${opts}</select>`;
+      } else {
+        col1Input = `<input inputmode="${f1==='lbs'?'decimal':'numeric'}" placeholder="${FIELD_META[f1].ph}" value="${s.weight}" data-exi="${exi}" data-si="${si}" data-field="weight">`;
+      }
+      const col2Placeholder = single ? FIELD_META[f1].ph : FIELD_META[f2].ph;
       html += `<div class="set-swipe" data-exi="${exi}" data-si="${si}">
         <div class="set-delete-action" data-exi="${exi}" data-si="${si}">DELETE</div>
         <div class="set-row ${rowGridClass}">
           <div class="set-num">${si+1}</div>
           <div class="set-prev">${prevLabel}</div>
-          ${noLbs?'':`<input inputmode="decimal" placeholder="lb" value="${s.weight}" data-exi="${exi}" data-si="${si}" data-field="weight">`}
-          <input inputmode="numeric" placeholder="${isMachine?'cal':(isLaps?'laps':'reps')}" value="${s.reps}" data-exi="${exi}" data-si="${si}" data-field="reps">
+          ${col1Input}
+          <input inputmode="numeric" placeholder="${col2Placeholder}" value="${s.reps}" data-exi="${exi}" data-si="${si}" data-field="reps">
           <button class="set-check ${s.done?'on':''}" data-exi="${exi}" data-si="${si}">✓</button>
         </div>
       </div>`;
@@ -1081,6 +1134,10 @@ function renderEditPanel(dayNum, dayExercises){
   html += `<div class="card">
     <h3>${editing?`Editing: ${editing.name}`:'Add exercise'}</h3>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+      <select id="fLibraryPick" style="background:var(--surface-2);border:1px solid var(--line);color:var(--ink-dim);border-radius:8px;padding:10px;font-size:13px;">
+        <option value="">— or pick from your full exercise list —</option>
+        ${EXERCISE_CATEGORIES.map(cat=>`<optgroup label="${cat.label}">${cat.names.map(n=>`<option value="${n}">${n}</option>`).join('')}</optgroup>`).join('')}
+      </select>
       <input id="fName" placeholder="Exercise name" value="${editing?editing.name:''}" style="background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px;font-size:14px;">
       <div style="display:flex;gap:8px;">
         <input id="fSets" type="number" inputmode="numeric" placeholder="Sets" value="${editing?editing.sets:3}" style="flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px;font-size:14px;">
@@ -1088,6 +1145,16 @@ function renderEditPanel(dayNum, dayExercises){
       </div>
       <input id="fTarget" placeholder="Target, e.g. 8-10 or 8-10/side" value="${editing?editing.target:''}" style="background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px;font-size:14px;">
       <input id="fTempo" placeholder="Tempo, e.g. 3-1-1 (or leave blank)" value="${editing&&editing.tempo!=='—'?editing.tempo:''}" style="background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px;font-size:14px;">
+      <div class="label" style="margin-top:2px;">TRACK</div>
+      <div style="display:flex;gap:8px;">
+        <select id="fField1" style="flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px;font-size:13px;">
+          ${Object.keys(FIELD_META).map(k=>`<option value="${k}" ${(editing?getField1(editing):'lbs')===k?'selected':''}>${FIELD_META[k].label}</option>`).join('')}
+        </select>
+        <select id="fField2" style="flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px;font-size:13px;">
+          <option value="" ${editing&&isSingleField(editing)?'selected':''}>— none (single metric) —</option>
+          ${Object.keys(FIELD_META).filter(k=>k!=='band').map(k=>`<option value="${k}" ${(editing?getField2(editing):'reps')===k?'selected':''}>${FIELD_META[k].label}</option>`).join('')}
+        </select>
+      </div>
       <div style="display:flex;gap:8px;">
         <button id="saveExBtn" class="finish-btn" style="margin-top:0;flex:1;">${editing?'SAVE CHANGES':'ADD EXERCISE'}</button>
         ${editing?`<button id="cancelEditBtn" style="flex:0 0 auto;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:none;color:var(--ink-dim);font-weight:700;">CANCEL</button>`:''}
@@ -1101,7 +1168,30 @@ function renderEditPanel(dayNum, dayExercises){
   return html;
 }
 
+const LIBRARY_DEFAULTS = {
+  "Rope Pull Machine": { field1:"calories", field2:"time", target:"3 x hard effort", tempo:"—", sets:3, rest:90 }
+};
+function findExerciseDefaults(name){
+  for(let d=1; d<=4; d++){
+    const found = getDayExercises(d).find(e=>e.name===name);
+    if(found) return found;
+  }
+  return LIBRARY_DEFAULTS[name] || null;
+}
 function attachEditPanelEvents(dayNum){
+  const libPick = document.getElementById('fLibraryPick');
+  if(libPick) libPick.onchange = ()=>{
+    const name = libPick.value;
+    if(!name) return;
+    const def = findExerciseDefaults(name);
+    document.getElementById('fName').value = name;
+    document.getElementById('fSets').value = def ? def.sets : 3;
+    document.getElementById('fRest').value = def ? def.rest : 60;
+    document.getElementById('fTarget').value = def ? def.target : '3 x 8-12';
+    document.getElementById('fTempo').value = def && def.tempo!=='—' ? def.tempo : '';
+    document.getElementById('fField1').value = def ? getField1(def) : 'lbs';
+    document.getElementById('fField2').value = def && isSingleField(def) ? '' : (def ? getField2(def) : 'reps');
+  };
   document.querySelectorAll('.removeExBtn').forEach(btn=>{
     btn.onclick = ()=>{
       const idx = parseInt(btn.dataset.idx);
@@ -1128,8 +1218,18 @@ function attachEditPanelEvents(dayNum){
     const rest = parseInt(document.getElementById('fRest').value)||0;
     const target = document.getElementById('fTarget').value.trim() || `${sets} x ?`;
     const tempo = document.getElementById('fTempo').value.trim() || "—";
+    const field1 = document.getElementById('fField1').value || 'lbs';
+    const field2Raw = document.getElementById('fField2').value;
     if(!name){ alert("Give the exercise a name."); return; }
-    addOrUpdateExercise(dayNum, {name, sets, target, tempo, rest}, editingIndex);
+    const exObj = {name, sets, target, tempo, rest, field1, field2: field2Raw===''?null:field2Raw};
+    if(field1==='band'){
+      const def = findExerciseDefaults(name);
+      exObj.bandColors = (def && def.bandColors) ? def.bandColors : ["Yellow","Green","Red","Blue","Black","Silver"];
+    }
+    const defForMachine = findExerciseDefaults(name);
+    if(defForMachine && defForMachine.machines) exObj.machines = defForMachine.machines;
+    if(defForMachine && defForMachine.unitNote) exObj.unitNote = defForMachine.unitNote;
+    addOrUpdateExercise(dayNum, exObj, editingIndex);
     editingIndex = null;
     renderToday();
   };
@@ -1196,9 +1296,9 @@ function renderExercisePreview(dayExercises, deloadPreview){
   let html = "";
   dayExercises.forEach(ex=>{
     const setCount = deloadPreview ? Math.max(2, Math.ceil(ex.sets*0.6)) : ex.sets;
-    const machine = ex.unit==='machine_cal' ? (state.machineChoice[ex.name]||ex.machines[0]) : null;
+    const machine = (ex.machines && ex.machines.length) ? (state.machineChoice[ex.name]||ex.machines[0]) : null;
     const best = bestForExercise(ex.name, machine);
-    const bestLabel = best ? (ex.unit==='machine_cal' ? ` · best ${best.reps} cal` : ` · best ${best.weight}×${best.reps}`) : '';
+    const bestLabel = best ? ` · best ${formatMetric(ex, best.weight, best.reps)}` : '';
     html += `<div class="exercise-card">
       <div class="exercise-head">
         <div>
@@ -1237,6 +1337,13 @@ function attachTodayEvents(){
       if(inp.value.trim()!=="") markSessionStarted();
     };
   });
+  document.querySelectorAll('.set-row select').forEach(sel=>{
+    sel.onchange = ()=>{
+      const exi=sel.dataset.exi, si=sel.dataset.si, field=sel.dataset.field;
+      draft.exercises[exi].sets[si][field]=sel.value;
+      if(sel.value.trim()!=="") markSessionStarted();
+    };
+  });
   document.querySelectorAll('.name-btn').forEach(btn=>{
     btn.onclick = ()=> openFormModal(btn.dataset.formname);
   });
@@ -1265,6 +1372,15 @@ function attachTodayEvents(){
       const exi = btn.dataset.exi;
       draft.exercises[exi].sets.push({weight:"", reps:"", prevWeight:null, prevReps:null, done:false, pr:false});
       renderToday();
+    };
+  });
+  document.querySelectorAll('.skip-today-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      const exi = parseInt(btn.dataset.exi);
+      if(confirm(`Skip ${btn.dataset.name} for today's session only? It'll be back next time this day comes up.`)){
+        draft.exercises.splice(exi,1);
+        renderToday();
+      }
     };
   });
   document.querySelectorAll('.set-check').forEach(btn=>{
@@ -1308,6 +1424,8 @@ function finishSession(){
     .map(ex=>({
       name: ex.name,
       machine: ex.machine || null,
+      field1: ex.field1 || null,
+      field2: ex.field2,
       sets: ex.sets.filter(s=>s.done && (s.weight||s.reps)).map(s=>({weight:s.weight, reps:s.reps, pr:!!s.pr}))
     }))
     .filter(ex=>ex.sets.length>0);
@@ -1414,9 +1532,8 @@ function renderHistory(){
       }
       const rows = s.exercises.map(ex=>{
         const best = bestSetOf(ex.sets);
-        const isMachine = !!ex.machine;
-        const label = isMachine ? `${ex.name} (${ex.machine})` : ex.name;
-        const bestLabel = isMachine ? `${best.reps} cal` : `${best.weight||'BW'} lb × ${best.reps}`;
+        const label = ex.machine ? `${ex.name} (${ex.machine})` : ex.name;
+        const bestLabel = formatMetric(ex, best.weight||'BW', best.reps);
         return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px;">
           <span style="color:var(--ink-dim);">${ex.sets.length} × ${label}</span>
           <span style="font-weight:700;flex-shrink:0;margin-left:10px;">${bestLabel}${ex.sets.some(x=>x.pr)?' 🏆':''}</span>
