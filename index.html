@@ -723,29 +723,56 @@ function addOrUpdateExercise(dayNum, exObj, idx){
     list[idx] = exObj;
   }
   saveState();
-  invalidateDraftIfNeeded(dayNum);
+  syncDraftWithDayExercises(dayNum);
 }
 function removeExercise(dayNum, idx){
   const list = ensureOverride(dayNum);
   list.splice(idx,1);
   saveState();
-  invalidateDraftIfNeeded(dayNum);
+  syncDraftWithDayExercises(dayNum);
 }
 function resetDay(dayNum){
   delete state.dayOverrides[dayNum];
   saveState();
-  invalidateDraftIfNeeded(dayNum);
+  syncDraftWithDayExercises(dayNum);
 }
-function invalidateDraftIfNeeded(dayNum){
-  if(draft && draft.dayNum===dayNum){
-    const hasProgress = draft.exercises.some(ex=>ex.sets.some(s=>s.done));
-    if(!hasProgress || confirm("This will reset today's in-progress log for this day, including the elapsed timer. Continue?")){
-      stopSessionClock();
-      startDraft(dayNum);
-    }
-  }
+function buildFreshExerciseEntry(ex){
+  const deload = isDeloadWeek();
+  const setCount = deload ? Math.max(2, Math.ceil(ex.sets*0.6)) : ex.sets;
+  const machine = (ex.machines && ex.machines.length) ? (state.machineChoice[ex.name] || ex.machines[0]) : null;
+  const prevSets = getPreviousSetData(ex.name, machine);
+  return {
+    name: ex.name, target: ex.target, tempo: ex.tempo, field1: ex.field1, field2: ex.field2,
+    unitNote: ex.unitNote, machine, machines: ex.machines, bandColors: ex.bandColors,
+    sets: Array.from({length:setCount},(_,i)=>{
+      const prev = prevSets && prevSets[i] ? prevSets[i] : null;
+      return {
+        weight: prev ? String(prev.weight||"") : "",
+        reps: prev ? String(prev.reps||"") : "",
+        prevWeight: prev ? prev.weight : null,
+        prevReps: prev ? prev.reps : null,
+        done:false, pr:false
+      };
+    })
+  };
 }
+// Reconciles the LIVE session with an edited day definition — adds/removes only what
+// actually changed. Never touches other exercises' logged sets, never resets the timer.
+function syncDraftWithDayExercises(dayNum){
+  if(!draft || draft.dayNum!==dayNum || draft.date!==todayStr()) return;
+  const dayExercises = getDayExercises(dayNum);
+  const newNames = dayExercises.map(e=>e.name);
 
+  // Drop exercises that were removed from the day
+  draft.exercises = draft.exercises.filter(e=>newNames.includes(e.name));
+
+  // Add exercises that are newly present, prefilled from history like normal
+  dayExercises.forEach(ex=>{
+    if(!draft.exercises.find(e=>e.name===ex.name)){
+      draft.exercises.push(buildFreshExerciseEntry(ex));
+    }
+  });
+}
 /* ============ REST TIME (per-lift, editable) ============ */
 const REST_PRESETS = [30,45,60,75,90,120,150,180,240];
 function restFor(ex){
@@ -1032,7 +1059,7 @@ function renderToday(){
 
   draft.exercises.forEach((ex,exi)=>{
     const best = bestForExercise(ex.name, ex.machine);
-    const programEx = dayExercises[exi];
+    const programEx = dayExercises.find(e=>e.name===ex.name) || dayExercises[exi];
     const single = isSingleField(ex);
     const f1 = getField1(ex), f2 = getField2(ex);
     const hasMachinePicker = !!(ex.machines && ex.machines.length);
@@ -1046,7 +1073,7 @@ function renderToday(){
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px;">
           ${ex.tempo!=='—'?`<div class="tempo-tag">${ex.tempo}</div>`:''}
-          ${programEx.rest>0?`<div class="rest-chip" data-restex="${exi}">⏱ ${fmtMS(restFor(programEx))}</div>`:''}
+          ${programEx.rest>0?`<div class="rest-chip" data-restex="${exi}" data-name="${ex.name}">⏱ ${fmtMS(restFor(programEx))}</div>`:''}
           <button class="skip-today-btn" data-exi="${exi}" data-name="${ex.name}">skip today</button>
         </div>
       </div>`;
@@ -1398,7 +1425,7 @@ function attachTodayEvents(){
           s.pr = true;
         }
         if(!wasDone){
-          const programEx = getDayExercises(draft.dayNum)[exi];
+          const programEx = getDayExercises(draft.dayNum).find(p=>p.name===ex.name);
           startTimer(restFor(programEx), programEx.name);
         }
       } else { s.pr = false; }
@@ -1409,8 +1436,8 @@ function attachTodayEvents(){
   document.querySelectorAll('.rest-chip').forEach(chip=>{
     chip.onclick = (e)=>{
       e.stopPropagation();
-      const exi = chip.dataset.restex;
-      const programEx = getDayExercises(draft.dayNum)[exi];
+      const name = chip.dataset.name;
+      const programEx = getDayExercises(draft.dayNum).find(p=>p.name===name);
       cycleRest(programEx);
       renderToday();
     };
@@ -1654,6 +1681,15 @@ function renderProgress(){
 /* ============ RENDER: SETTINGS ============ */
 function renderSettings(){
   let html = `<div class="card">
+    <h3>Backup & Restore</h3>
+    <p>This is the real fix for losing data to a cleared cookie/cache. Download a full backup file periodically and save it somewhere outside Safari — Files app, email to yourself, whatever's durable. If your data ever gets wiped, restore from that file and you're back exactly where you left off, including your program edits, band choices, and block schedule — not just the workout log.</p>
+    <button class="copy-btn" id="downloadBackupBtn" style="margin-top:10px;">⬇ DOWNLOAD BACKUP (.JSON)</button>
+    <div class="label" style="margin-top:16px;">RESTORE FROM BACKUP</div>
+    <textarea id="restoreBox" class="export" placeholder="Paste backup JSON here, or use the file picker below" style="min-height:100px;margin-top:8px;"></textarea>
+    <input type="file" id="restoreFile" accept="application/json" style="margin-top:8px;color:var(--ink-dim);font-size:12px;">
+    <button class="copy-btn" id="restoreBtn" style="margin-top:10px;background:var(--surface-2);color:var(--ink);">RESTORE FROM BACKUP</button>
+  </div>`;
+  html += `<div class="card">
     <h3>Block schedule</h3>
     <p>Day cycle: Mon Lower · Tue Upper · Wed Conditioning · Thu Rest · Fri Full Body · Sat/Sun Rest.<br>
     Block start: ${fmtDate(state.blockStartDate)}. Week 4 of every block auto-deloads (fewer sets, same or lighter load).</p>
@@ -1669,6 +1705,15 @@ function renderSettings(){
     <button class="reset-btn" id="resetBtn">ERASE ALL DATA</button>
   </div>`;
   document.getElementById("app").innerHTML = html;
+  document.getElementById("downloadBackupBtn").onclick = downloadStateBackup;
+  document.getElementById("restoreBtn").onclick = restoreFromBackup;
+  document.getElementById("restoreFile").onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ document.getElementById("restoreBox").value = reader.result; };
+    reader.readAsText(file);
+  };
   document.getElementById("newBlockBtn").onclick = ()=>{
     state.blockStartDate = todayStr(); saveState(); renderSettings();
   };
@@ -1678,6 +1723,36 @@ function renderSettings(){
       saveState(); render();
     }
   };
+}
+function downloadStateBackup(){
+  const text = JSON.stringify(state, null, 2);
+  const blob = new Blob([text], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `iron-block-backup-${todayStr()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function restoreFromBackup(){
+  const raw = document.getElementById("restoreBox").value.trim();
+  if(!raw){ alert("Paste backup JSON or choose a file first."); return; }
+  let parsed;
+  try{ parsed = JSON.parse(raw); }
+  catch(e){ alert("That doesn't look like valid backup JSON. Check you copied the whole file."); return; }
+  if(!parsed || !Array.isArray(parsed.history)){ alert("This file doesn't look like an Iron Block backup."); return; }
+  if(!confirm(`This will replace all current data with the backup (${parsed.history.length} session(s)). Continue?`)) return;
+  state = {
+    blockStartDate: parsed.blockStartDate || todayStr(),
+    history: parsed.history || [],
+    bestLifts: parsed.bestLifts || {},
+    restOverrides: parsed.restOverrides || {},
+    dayOverrides: parsed.dayOverrides || {},
+    machineChoice: parsed.machineChoice || {}
+  };
+  saveState();
+  alert("Restored successfully.");
+  activeTab = "history";
+  render();
 }
 
 /* ============ TAB CONTROL ============ */
