@@ -1005,7 +1005,10 @@ function renderToday(){
     </div>
   </div>`;
   if(isPreview){
-    html += `<div style="text-align:center;margin-bottom:12px;"><button id="backToCurrentBtn" style="background:var(--surface-2);border:1px solid var(--line);color:var(--amber);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;">← BACK TO CURRENT WEEK (W${realWeek})</button></div>`;
+    html += `<div style="text-align:center;margin-bottom:12px;display:flex;gap:8px;justify-content:center;">
+      <button id="backToCurrentBtn" style="background:var(--surface-2);border:1px solid var(--line);color:var(--ink-dim);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;">← BACK TO WEEK ${realWeek}</button>
+      <button id="startThisWeekBtn" style="background:var(--amber);border:none;color:#1a1500;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;">▶ START WEEK ${displayWeek} NOW</button>
+    </div>`;
   }
 
   html += `<div class="day-picker">`;
@@ -1314,9 +1317,24 @@ function attachWeekNav(realWeek){
   const prev = document.getElementById('weekPrev');
   const next = document.getElementById('weekNext');
   const back = document.getElementById('backToCurrentBtn');
+  const startBtn = document.getElementById('startThisWeekBtn');
   const current = previewWeek ?? realWeek;
   if(prev) prev.onclick = ()=>{ if(current>1){ previewWeek = current-1; renderToday(); } };
   if(next) next.onclick = ()=>{ if(current<4){ previewWeek = current+1; renderToday(); } };
+  if(startBtn) startBtn.onclick = ()=>{
+    const target = previewWeek;
+    if(target===null || target===realWeek) return;
+    const ok = confirm(`This makes Week ${target} the active week starting today. Your program edits and history are untouched — this only changes which week's deload status applies. Continue?`);
+    if(!ok) return;
+    let delta = (target - realWeek) % 4;
+    if(delta < 0) delta += 4;
+    const start = new Date(state.blockStartDate);
+    start.setDate(start.getDate() - delta*7);
+    state.blockStartDate = start.toISOString().slice(0,10);
+    saveState();
+    previewWeek = null;
+    renderToday();
+  };
   if(back) back.onclick = ()=>{ previewWeek = null; renderToday(); };
 }
 function renderExercisePreview(dayExercises, deloadPreview){
