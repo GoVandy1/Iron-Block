@@ -386,6 +386,7 @@ const PROGRAM = {
       {name:"Leg Extension Machine", target:"3 x 12-15", tempo:"2-0-2", sets:3, rest:60},
       {name:"Pallof Press", target:"3 x 10-12/side", tempo:"controlled", sets:3, rest:45, field1:"band", field2:"reps", bandColors:["Yellow","Green","Red","Blue","Black","Silver"]},
       {name:"Reverse Hyper", target:"3 x 15-20", tempo:"controlled", sets:3, rest:60},
+      {name:"Standing Calf Raise (DB/machine)", target:"3 x 12-15", tempo:"2-1-2", sets:3, rest:45},
     ]
   },
   2: {
@@ -471,6 +472,11 @@ const FORM_CUES = {
     setup: "Hips on the pad, holding the frame, legs hanging free.",
     steps: ["Squeeze glutes to lift legs to parallel with the floor", "Control the lowering, don't let momentum swing you", "Keep the low back neutral throughout — glute-driven, not a lumbar extension"],
     faults: ["Using momentum/swinging instead of a controlled glute contraction"]
+  },
+  "Standing Calf Raise (DB/machine)": {
+    setup: "Standing on flat ground or the edge of a step, holding dumbbells or on a calf raise machine. Added for ankle tendon rehab — get the load and range confirmed with your surgeon/PT before progressing this past bodyweight or light load, since the right dosage depends on where your specific repair is in its healing timeline.",
+    steps: ["Rise up onto your toes with control, no bouncing off the bottom", "Pause briefly at the top", "Lower slowly through the full range your ankle allows comfortably — don't force range that isn't there yet", "Stop the set if you feel sharp pain, tendon pain, or anything beyond normal muscle fatigue"],
+    faults: ["Bouncing at the bottom instead of a controlled stretch — this is the main thing to avoid on a healing tendon", "Rushing the tempo instead of the slow 2-1-2 prescribed here", "Progressing load or range faster than your rehab team has cleared"]
   },
   "Incline DB Press (1a)": {
     setup: "Bench at 30-45°, dumbbells at shoulder height.",
@@ -635,7 +641,7 @@ const FORM_CUES = {
 };
 
 const EXERCISE_CATEGORIES = [
-  { label: "Squat / Knee-Dominant", names: ["Box Squat (DB, partial depth)","Wall Sit (isometric)","Goblet Squat","Front Squat (DB/KB)","Bulgarian Split Squat (DB)","Leg Extension Machine","Step-Up","Single-Leg Leg Press / Step-Up","Lateral Lunge"] },
+  { label: "Squat / Knee-Dominant", names: ["Box Squat (DB, partial depth)","Wall Sit (isometric)","Goblet Squat","Front Squat (DB/KB)","Bulgarian Split Squat (DB)","Leg Extension Machine","Step-Up","Single-Leg Leg Press / Step-Up","Lateral Lunge","Standing Calf Raise (DB/machine)"] },
   { label: "Hinge / Hip-Dominant", names: ["Single-Leg RDL (DB)","Trap Bar Deadlift","Conventional / Romanian Deadlift","Hip Thrust (barbell/machine)","Kettlebell Swing","Cable Pull-Through","Reverse Hyper"] },
   { label: "Push", names: ["Incline DB Press (1a)","Flat DB Bench Press","Seated DB Shoulder Press (2a)","DB Push Press","Assisted Dip"] },
   { label: "Pull", names: ["Chest-Supported Row (1b)","Single-Arm DB Row","Lat Pulldown / Assisted Pull-Up (2b)","Chin-Up / Assisted Pull-Up","Face Pull"] },
